@@ -152,6 +152,8 @@ class Fingerprinting{
 
   Future<void> collectSensorDataEverySecond() async {
 
+    //turn on beacon stream
+
     data = Data(position: "${userPosition?.coordx},${userPosition?.coordy},$floor");
 
     gps.startGpsUpdates();
@@ -175,12 +177,14 @@ class Fingerprinting{
     });
 
     timer = Timer.periodic(Duration(seconds: 1), (timer) async {
+      List<Beacon> beacons = await fetchBeaconData();
       var gpsData = await fetchGpsData();
       var magnetometerData = await fetchMagnetometerData();
       var accelerometerData = await fetchAccelerometerData();
       var lux = await fetchLux();
 
       var fingerprint = SensorFingerprint(
+        beacons: beacons,
         gpsData: gpsData,
         magnetometerData: magnetometerData,
         accelerometerData: accelerometerData,
@@ -198,7 +202,24 @@ class Fingerprinting{
 
   void stopCollectingData(){
     timer?.cancel();
+
+    //cancel beacon stream here
     fingerPrintingApi().Finger_Printing_API(buildingAllApi.selectedBuildingID, data!);
+  }
+
+  Future<List<Beacon>> fetchBeaconData() async {
+    List<Beacon> beacons = [];
+
+    //call this line for every beacon scanned using a for loop
+    beacons.add(setBeacon(null,null,null));
+
+    return beacons;
+  }
+
+  Beacon setBeacon(String? beaconMacId, String? beaconName, int? beaconRssi ){
+    return Beacon(
+        beaconMacId: beaconMacId, beaconName: beaconName, beaconRssi: beaconRssi
+    );
   }
 
   Future<GpsData> fetchGpsData() async {
