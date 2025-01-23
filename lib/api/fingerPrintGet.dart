@@ -24,6 +24,7 @@ class fingerPrintingGetApi {
     );
 
     if (response.statusCode == 200) {
+      print(response.body);
       Map<String, dynamic> responseBody = json.decode(response.body);
       return FingerPrintData.fromJson(responseBody);
     }else if(response.statusCode == 403){

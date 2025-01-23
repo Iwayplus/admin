@@ -135,8 +135,16 @@ class _pinLandmarkState extends State<pinLandmark> {
             widget.fingerprinting.collectSensorDataEverySecond();
             controller.loading(); //starts loading animation
             await Future.delayed(Duration(seconds: selectedTimeInSeconds));
-            widget.fingerprinting.stopCollectingData();
-            controller.success();
+            bool success = await widget.fingerprinting.stopCollectingData();
+            if(success){
+              controller.failure();
+              await Future.delayed(Duration(seconds: 10));
+              controller.reset();
+            }else{
+              controller.success();
+              await Future.delayed(Duration(seconds: 10));
+              controller.reset();
+            }
           },
         ),
       ],

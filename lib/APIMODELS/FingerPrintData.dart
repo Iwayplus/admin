@@ -14,6 +14,7 @@ class FingerPrintData {
   });
 
   factory FingerPrintData.fromJson(Map<String, dynamic> json) {
+
     return FingerPrintData(
       id: json['_id'],
       buildingID: json['building_ID'],

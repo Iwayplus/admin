@@ -17,6 +17,7 @@ import 'dart:ui' as ui;
 import 'dart:typed_data';
 
 import 'api/fingerPrintGet.dart';
+import 'beaconController.dart';
 import 'fingerprinting/fingerprinting.dart';
 
 class googleMap extends StatefulWidget {
@@ -30,6 +31,7 @@ class _googleMapState extends State<googleMap> {
   GPS gps = GPS();
   late GoogleMapController _googleMapController;
   PolygonController polygonController = PolygonController();
+  BeaconController beaconController = BeaconController();
   PatchController patchController = PatchController();
   final _initialCameraPosition = const CameraPosition(
     target: LatLng(60.543833319119475, 77.18729871127312),
@@ -65,10 +67,11 @@ class _googleMapState extends State<googleMap> {
     await patchController.createPatch();
     fitPolygonInScreen(patchController.polygons.first);
     await polygonController.renderRooms(0);
+    await beaconController.getBeacons();
 
     setState(() {});
   }
-  
+
   void fitPolygonInScreen(Polygon polygon) {
 
     List<LatLng> getPolygonPoints(Polygon polygon) {
@@ -199,7 +202,7 @@ class _googleMapState extends State<googleMap> {
                     onTap: () {
                       setState(() {
                         print("enabling");
-                        fingerprinting.enableFingerprinting(polygonController);
+                        fingerprinting.enableFingerprinting(polygonController,beaconController);
                       });
                     },
                   )],

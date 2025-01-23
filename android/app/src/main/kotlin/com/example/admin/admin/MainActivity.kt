@@ -1,4 +1,4 @@
-package com.iwayplus.navigation
+package com.example.admin.admin
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
@@ -33,6 +33,7 @@ class MainActivity : FlutterActivity() {
     private val METHOD_CHANNEL = "com.example.bluetooth/scan"
     private val EVENT_CHANNEL = "com.example.bluetooth/scanUpdates"
     private var eventSink: EventChannel.EventSink? = null
+    private val devicesRssi: MutableMap<String, MutableList<Int>> = mutableMapOf() // New data structure
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
@@ -116,6 +117,10 @@ class MainActivity : FlutterActivity() {
                 }
                 "getScannedDevices" -> {
                     result.success(deviceDetailsList)
+                }
+                "getDevicesRssi" -> { // New method to return devicesRssi
+                    val devicesRssiMap = devicesRssi.mapValues { it.value.toList() }
+                    result.success(devicesRssiMap)
                 }
                 else -> result.notImplemented()
             }

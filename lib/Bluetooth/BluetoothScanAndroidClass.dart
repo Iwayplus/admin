@@ -55,6 +55,17 @@ class BluetoothScanAndroidClass{
     }
   }
 
+  Future<Map<String, List<int>>> getDevicesRssi() async {
+    try {
+      final Map<dynamic, dynamic> result = await methodChannel.invokeMethod('getDevicesRssi');
+      // Convert dynamic map to a proper Dart map
+      return result.map((key, value) => MapEntry(key as String, List<int>.from(value as List)));
+    } catch (e) {
+      print("Error fetching devices RSSI: $e");
+      return {};
+    }
+  }
+
 
   BluetoothDevice parseDeviceDetails(String response) {
     final deviceRegex = RegExp(
@@ -88,29 +99,21 @@ class BluetoothScanAndroidClass{
 
 
 
-  void listenToScanUpdates(HashMap<String, beacon> apibeaconmap) {
+  void listenToScanUpdates(Map<String, beacon> apibeaconmap) {
     startScan();
-    print("listenToScanUpdates");
 
-    Map<String, List<int>> rssiValues = {};
     String deviceMacId = "";
     // Start listening to the stream continuously
     _scanSubscription = eventChannel.receiveBroadcastStream().listen((deviceDetail) {
       BluetoothDevice deviceDetails = parseDeviceDetails(deviceDetail);
       if(apibeaconmap.containsKey(deviceDetails.DeviceName)) {
         deviceMacId = deviceDetails.DeviceAddress;
-        print("iffffff");
-        print(deviceDetails.DeviceName);
         deviceNames[deviceDetails.DeviceAddress] = deviceDetails.DeviceName;
-
         rssiValues.putIfAbsent(deviceDetails.DeviceAddress, () => []);
         rssiWeight.putIfAbsent(deviceDetails.DeviceAddress, () => []);
 
 
         rssiValues[deviceDetails.DeviceAddress]!.add(int.parse(deviceDetails.DeviceRssi));
-        print("deviceDetails.DeviceRssi");
-        print(deviceDetails.DeviceRssi);
-
         rssiWeight[deviceDetails.DeviceAddress]!.add(getWeight(getBinNumber(int.parse(deviceDetails.DeviceRssi).abs())));
 
         if (rssiValues[deviceDetails.DeviceAddress]!.length > 7) {
@@ -124,17 +127,8 @@ class BluetoothScanAndroidClass{
 
         rssiAverage = calculateAverageFromRssi(rssiValues,deviceNames,rssiWeight);
 
-        print("rssiAverage");
-        print(rssiAverage);
 
         closestDeviceDetails = findLowestRssiDevice(rssiAverage);
-
-        print("closestDeviceDetails");
-        print(closestDeviceDetails);
-
-        //addtoBin(deviceDetails.DeviceAddress, int.parse(deviceDetails.DeviceRssi));
-      }else{
-
       }
     }, onError: (error) {
       print('Error receiving device updates: $error');
@@ -162,20 +156,24 @@ class BluetoothScanAndroidClass{
         // Sort the map by value (e.g., strongest signal first)
         Map<String, double> sortedSumMap = sortMapByValue(sumMap);
         sumMapCallBack = sortedSumMap;
-        print("SortedSumMap: $sortedSumMap");
-
       });
-
     }
+  }
 
+  Map<String, List<int>> getDeviceWithRssi(){
+    return rssiValues;
+  }
+  Map<String, double> getDeviceWithAverage(){
+    return rssiAverage;
+  }
+  Map<String, String> getDeviceName(){
+    return deviceNames;
   }
 
 
 
-  Map<String, List<double>> giveSumMapCallBack(){
-    print("newList");
 
-    print(newList);
+  Map<String, List<double>> giveSumMapCallBack(){
     return newList;
   }
 
@@ -203,15 +201,8 @@ class BluetoothScanAndroidClass{
 
         // Update the newList for debugging or other purposes
         newList[deviceList[address]!] = rssiList;
-
-        print("deviceList[address]");
-        print(average);
-        print(newList);
-
         // Add the average to the map
         averagedRssiValues[deviceList[address]!] = average;
-      } else {
-        print("Warning: RSSI list for $address is empty.");
       }
     });
 
@@ -249,7 +240,6 @@ class BluetoothScanAndroidClass{
 
     BIN = HashMap();
     numberOfSample.clear();
-    startbin();
 
     return sumMap;
   }
@@ -273,8 +263,6 @@ class BluetoothScanAndroidClass{
       }
     });
     closestRSSI = lowestValue.toString();
-    print("findLowestRssiDevice");
-    print(lowestValue);
 
     return lowestKey ?? "No devices found";
   }
@@ -282,8 +270,7 @@ class BluetoothScanAndroidClass{
   String EM_findLowestRssiDevice(Map<String, double> rssiAverage) {
     String? lowestKey;
     double? lowestValue = 3;
-print("rssiAverage");
-print(rssiAverage);
+
     rssiAverage.forEach((key, value) {
 
       if (lowestValue == null || value > lowestValue!) {
@@ -292,10 +279,6 @@ print(rssiAverage);
       }
     });
     closestRSSI = lowestValue.toString();
-    print("findLowestRssiDevice");
-    print(lowestValue);
-    print(lowestKey);
-
     return lowestKey ?? "No devices found";
   }
 
@@ -307,13 +290,10 @@ print(rssiAverage);
 
   int getBinNumber(int Rssi){
     if (Rssi <= 65) {
-      print("getBinNumber0");
       return 0;
     } else if (Rssi <= 75) {
-      print("getBinNumber1");
       return 1;
     } else if (Rssi <= 80) {
-      print("getBinNumber2");
       return 2;
     } else if (Rssi <= 85) {
       return 3;
@@ -346,76 +326,5 @@ print(rssiAverage);
       default:
         return 0.0;
     }
-  }
-
-
-  void addtoBin(String MacId, int rssi) {
-
-    int binnumber = 0;
-    int Rssi = rssi * -1;
-    if(numberOfSample[MacId] == null){
-      numberOfSample[MacId] = 0;
-      rs[MacId] = [];
-    }
-    numberOfSample[MacId] = numberOfSample[MacId]! + 1;
-    rs[MacId]!.add(rssi);
-
-
-
-    //print("of beacon ${rs}");
-
-
-    if (Rssi <= 65) {
-      binnumber = 0;
-    } else if (Rssi <= 75) {
-      binnumber = 1;
-    } else if (Rssi <= 80) {
-      binnumber = 2;
-    } else if (Rssi <= 85) {
-      binnumber = 3;
-    } else if (Rssi <= 90) {
-      binnumber = 4;
-    } else if (Rssi <= 95) {
-      binnumber = 5;
-    } else {
-      binnumber = 6;
-    }
-
-    if(BIN[binnumber]==null){
-      startbin();
-    }
-
-    if (BIN[binnumber]!.containsKey(MacId)) {
-      BIN[binnumber]![MacId] = BIN[binnumber]![MacId]! + weight[binnumber]!;
-    } else {
-      BIN[binnumber]![MacId] = 1 * weight[binnumber]!;
-    }
-    //print("number of sample---${numberOfSample[MacId]}");
-  }
-
-  void startbin() {
-    BIN[0] = HashMap<String, double>();
-    BIN[1] = HashMap<String, double>();
-    BIN[2] = HashMap<String, double>();
-    BIN[3] = HashMap<String, double>();
-    BIN[4] = HashMap<String, double>();
-    BIN[5] = HashMap<String, double>();
-    BIN[6] = HashMap<String, double>();
-
-    weight[0] = 12.0;
-    weight[1] = 6.0;
-    weight[2] = 4.0;
-    weight[3] = 0.5;
-    weight[4] = 0.25;
-    weight[5] = 0.15;
-    weight[6] = 0.1;
-  }
-
-  void emptyBin() {
-    for (int i = 0; i < BIN.length; i++) {
-      BIN[i]!.clear();
-    }
-    numberOfSample.clear();
-    rs.clear();
   }
 }
