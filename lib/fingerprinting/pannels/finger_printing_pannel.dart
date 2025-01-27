@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:action_slider/action_slider.dart';
 import 'package:admin/api/buildingAllApi.dart';
 import 'package:flutter/cupertino.dart';
@@ -21,6 +23,8 @@ class _pinLandmarkState extends State<pinLandmark> {
 
   List<bool> isSelected = [true, false, false, false];
   int selectedTimeInSeconds = 10; // Default to 10 seconds
+  ValueNotifier<int> remainingTime = ValueNotifier<int>(0);
+  Timer? countdownTimer;
 
   void _updateSelectedTime(int index) {
     setState(() {
@@ -42,6 +46,19 @@ class _pinLandmarkState extends State<pinLandmark> {
         case 3:
           selectedTimeInSeconds = 120;
           break;
+      }
+    });
+  }
+
+
+  void startCountdown() {
+    remainingTime.value = selectedTimeInSeconds;
+    countdownTimer?.cancel();
+    countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (remainingTime.value > 0) {
+        remainingTime.value -= 1;
+      } else {
+        timer.cancel();
       }
     });
   }
@@ -129,21 +146,34 @@ class _pinLandmarkState extends State<pinLandmark> {
           ],
         ),
         SizedBox(height: 12,),
+        ValueListenableBuilder<int>(
+          valueListenable: remainingTime,
+          builder: (context, value, child) {
+            return Text(
+              "Time left: ${value}s",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            );
+          },
+        ),
+        SizedBox(height: 12,),
         ActionSlider.standard(
           child: const Text('Slide to capture'),
           action: (controller) async {
             widget.fingerprinting.collectSensorDataEverySecond();
+            startCountdown();
             controller.loading(); //starts loading animation
             await Future.delayed(Duration(seconds: selectedTimeInSeconds));
             bool success = await widget.fingerprinting.stopCollectingData();
             if(success){
-              controller.failure();
-              await Future.delayed(Duration(seconds: 10));
-              controller.reset();
-            }else{
               controller.success();
               await Future.delayed(Duration(seconds: 10));
               controller.reset();
+              widget.fingerprinting.disableFingerprinting();
+            }else{
+              controller.failure();
+              await Future.delayed(Duration(seconds: 10));
+              controller.reset();
+              widget.fingerprinting.disableFingerprinting();
             }
           },
         ),

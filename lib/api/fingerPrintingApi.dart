@@ -13,6 +13,7 @@ class fingerPrintingApi {
   Future<bool> Finger_Printing_API(String building_ID, Data fingerPrint) async {
 
     if(fingerPrint.sensorFingerprint == null){
+      print("fail 1");
       return false;
     }
 
@@ -32,13 +33,17 @@ class fingerPrintingApi {
       },
     );
 
+    print(response.body);
+
     if (response.statusCode == 200) {
+      print("fail 2");
       return true ;
     }else if(response.statusCode == 403){
       String newAccessToken = await RefreshTokenAPI.refresh();
       accessToken = newAccessToken;
       return Finger_Printing_API(building_ID,fingerPrint);
     } else {
+      print("fail 3");
       return false;
       throw Exception('Failed to load Finger_Printing_API data');
     }

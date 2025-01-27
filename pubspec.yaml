@@ -48,6 +48,7 @@ dependencies:
   ar_flutter_plugin_flutterflow: ^0.7.55
   path_provider: ^2.1.5
   flutter_archive: ^6.0.3
+  wifi_scan: ^0.4.1+1
 
 
 

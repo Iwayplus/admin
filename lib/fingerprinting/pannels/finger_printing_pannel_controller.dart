@@ -46,7 +46,7 @@ class fingerprintingPannel {
       controller: _panelController,
       panel: pinLandmark(fingerprinting: fingerprinting),
       minHeight: 0,
-      maxHeight: 350, // Maximum height of the panel
+      maxHeight: 370, // Maximum height of the panel
       backdropOpacity: 0.5,
       isDraggable: false,
     );

@@ -21,6 +21,7 @@ class Data {
 
 class SensorFingerprint {
   List<Beacon>? beacons;
+  List<Wifi>? wifi;
   GpsData? gpsData;
   MagnetometerData? magnetometerData;
   AccelerometerData? accelerometerData;
@@ -29,6 +30,7 @@ class SensorFingerprint {
 
   SensorFingerprint({
     this.beacons,
+    this.wifi,
     this.gpsData,
     this.magnetometerData,
     this.accelerometerData,
@@ -40,6 +42,7 @@ class SensorFingerprint {
   Map<String, dynamic> toJson() {
     return {
       'beacons': beacons?.map((beacon) => beacon.toJson()).toList(),
+      'wifi': wifi?.map((wifi) => wifi.toJson()).toList(),
       'gpsData': gpsData?.toJson(),
       'magnetometerData': magnetometerData?.toJson(),
       'accelerometerData': accelerometerData?.toJson(),
@@ -54,6 +57,11 @@ class SensorFingerprint {
       beacons: json['beacons'] != null
           ? (json['beacons'] as List)
           .map((beaconJson) => Beacon.fromJson(beaconJson))
+          .toList()
+          : null,
+      wifi: json['wifi'] != null
+          ? (json['wifi'] as List)
+          .map((wifiJson) => Wifi.fromJson(wifiJson))
           .toList()
           : null,
       gpsData: json['gpsData'] != null ? GpsData.fromJson(json['gpsData']) : null,
@@ -107,6 +115,30 @@ class Beacon {
           : null,
       beaconFloor: json['beaconFloor'],
       buildingId: json['buildingId'],
+    );
+  }
+}
+
+class Wifi {
+  String? wifiName;
+  int? wifiStrength;
+
+  Wifi({
+    this.wifiName,
+    this.wifiStrength,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'wifiName': wifiName,
+      'wifiStrength': wifiStrength,
+    };
+  }
+
+  factory Wifi.fromJson(Map<String, dynamic> json) {
+    return Wifi(
+      wifiName: json['wifiName'],
+      wifiStrength: json['wifiStrength'],
     );
   }
 }

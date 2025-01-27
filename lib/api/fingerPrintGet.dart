@@ -11,7 +11,7 @@ class fingerPrintingGetApi {
   final String baseUrl = kDebugMode? "https://dev.iwayplus.in/secured/get-fingerprinting-data/" : "https://maps.iwayplus.in/secured/get-fingerprinting-data/";
   String accessToken = "";
 
-  Future<FingerPrintData> Finger_Printing_GET_API(String building_ID) async {
+  Future<FingerPrintData?> Finger_Printing_GET_API(String building_ID) async {
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
     accessToken = await prefs.getMap("signin")!["accessToken"];
 
@@ -25,8 +25,13 @@ class fingerPrintingGetApi {
 
     if (response.statusCode == 200) {
       print(response.body);
-      Map<String, dynamic> responseBody = json.decode(response.body);
-      return FingerPrintData.fromJson(responseBody);
+      try{
+        Map<String, dynamic> responseBody = json.decode(response.body);
+        return FingerPrintData.fromJson(responseBody);
+      }catch(e){
+        return null;
+      }
+
     }else if(response.statusCode == 403){
       String newAccessToken = await RefreshTokenAPI.refresh();
       accessToken = newAccessToken;

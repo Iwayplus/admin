@@ -146,9 +146,9 @@ class AccelerometerData {
 
   factory AccelerometerData.fromJson(Map<String, dynamic> json) {
     return AccelerometerData(
-      x: json['x'],
-      y: json['y'],
-      z: json['z'],
+      x: json['x'].toDouble(),
+      y: json['y'].toDouble(),
+      z: json['z'].toDouble(),
     );
   }
 

@@ -10,6 +10,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:light/light.dart';
 import 'package:sensors_plus/sensors_plus.dart';
+import 'package:wifi_scan/wifi_scan.dart';
 
 import '../APIMODELS/Building.dart';
 import '../APIMODELS/FingerPrintData.dart' as fp;
@@ -50,6 +51,9 @@ class Fingerprinting{
   Timer? timer;
   BluetoothScanAndroidClass bluetoothScanAndroidClass = BluetoothScanAndroidClass();
 
+  List<WiFiAccessPoint> accessPoints = [];
+  StreamSubscription<List<WiFiAccessPoint>>? subscription;
+
   Fingerprinting() {
     FingerPrintingPannel = fingerprintingPannel(fingerprinting: this);
   }
@@ -68,10 +72,10 @@ class Fingerprinting{
     _dotMarkers.clear();
     floor = polygonController.floor;
     apibeaconmap = beaconController.apibeaconmap;
-    fingerPrintData = await fingerPrintingGetApi().Finger_Printing_GET_API(buildingAllApi.selectedBuildingID);
+    var fingerPrintData = await fingerPrintingGetApi().Finger_Printing_GET_API(buildingAllApi.selectedBuildingID);
     List<poly.Nodes> waypoints = await polygonController.extractWaypoints();
     for (var point in waypoints) {
-      await addDotMarker(point);
+      await addDotMarker(point, fingerPrintData!);
     }
     print("enabled");
   }
@@ -79,6 +83,8 @@ class Fingerprinting{
   void disableFingerprinting(){
     _dotMarkers.clear();
     _Markers.clear();
+    accessPoints = [];
+    subscription = null;
     userPosition = null;
     floor = null;
     apibeaconmap = null;
@@ -102,10 +108,10 @@ class Fingerprinting{
     _updateMarkers();
   }
 
-  Future<void> addDotMarker(poly.Nodes point) async {
+  Future<void> addDotMarker(poly.Nodes point, fp.FingerPrintData? fingerPrintData) async {
     print("dotmarker");
     var svgIcon = await _svgToBitmapDescriptor('assets/dot.svg', Size(40, 40));
-    if(fingerPrintData!.fingerPrintData["${point.coordx},${point.coordy},$floor"] != null){
+    if(fingerPrintData != null && fingerPrintData.fingerPrintData["${point.coordx},${point.coordy},$floor"] != null){
       svgIcon = await _svgToBitmapDescriptor('assets/exitservice.svg', Size(40, 40));
     }
 
@@ -168,7 +174,7 @@ class Fingerprinting{
       HelperClass.showToast("Getting beacon data!!");
     }
 
-    //turn on beacon stream
+    _startListeningToScannedResults();
 
     data = Data(position: "${userPosition?.coordx},${userPosition?.coordy},$floor");
 
@@ -196,12 +202,14 @@ class Fingerprinting{
       List<Beacon> beacons = await fetchBeaconData();
       print(beacons);
       var gpsData = await fetchGpsData();
+      var wifi = await fetchWifiData();
       var magnetometerData = await fetchMagnetometerData();
       var accelerometerData = await fetchAccelerometerData();
       var lux = await fetchLux();
 
       var fingerprint = SensorFingerprint(
         beacons: beacons,
+        wifi: wifi,
         gpsData: gpsData,
         magnetometerData: magnetometerData,
         accelerometerData: accelerometerData,
@@ -224,6 +232,16 @@ class Fingerprinting{
     return await fingerPrintingApi().Finger_Printing_API(buildingAllApi.selectedBuildingID, data!);
   }
 
+  void _startListeningToScannedResults() async {
+    // check platform support and necessary requirements
+    final can = await WiFiScan.instance.canGetScannedResults(askPermissions: true);
+    if(can == CanGetScannedResults.yes){
+      subscription = WiFiScan.instance.onScannedResultsAvailable.listen((results) {
+        accessPoints = results;
+      });
+    }
+  }
+
   Future<List<Beacon>> fetchBeaconData() async {
     Map<String, List<int>> beaconvalues = await bluetoothScanAndroidClass.getDeviceWithRssi();
     Map<String, double> averageValue = await bluetoothScanAndroidClass.getDeviceWithAverage();
@@ -231,8 +249,10 @@ class Fingerprinting{
 
     List<Beacon> beacons = [];
     beaconvalues.forEach((key,value){
-      Position position = Position(x:apibeaconmap![key]!.coordinateX!.toDouble()??apibeaconmap![key]!.doorX!.toDouble(),y:apibeaconmap![key]!.coordinateY!.toDouble()??apibeaconmap![key]!.doorY!.toDouble());
-      beacons.add(setBeacon(key, deviceNames[key], value.last,position,apibeaconmap![key]!.floor!.toString(),apibeaconmap![key]!.buildingID));
+      if(apibeaconmap != null && apibeaconmap![key] != null){
+        Position position = Position(x:(apibeaconmap![key]!.coordinateX??apibeaconmap![key]!.doorX!).toDouble(),y:(apibeaconmap![key]!.coordinateY??apibeaconmap![key]!.doorY!).toDouble());
+        beacons.add(setBeacon(key, deviceNames[key], value.last,position,apibeaconmap![key]!.floor!.toString(),apibeaconmap![key]!.buildingID));
+      }
     });
     //call this line for every beacon scanned using a for loop
     // beacons.add(setBeacon(null,null,null));
@@ -256,6 +276,15 @@ class Fingerprinting{
   Future<MagnetometerData> fetchMagnetometerData() async {
     return MagnetometerData(value: theta);
   }
+
+  Future<List<Wifi>> fetchWifiData() async {
+    List<Wifi> wifilist = [];
+    for (var wifi in accessPoints) {
+      wifilist.add(Wifi(wifiName: wifi.bssid, wifiStrength: wifi.level));
+    }
+    return wifilist;
+  }
+
 
   Future<AccelerometerData> fetchAccelerometerData() async {
     return AccelerometerData(x: _x, y: _y, z: _z);
