@@ -75,7 +75,7 @@ class Fingerprinting{
     var fingerPrintData = await fingerPrintingGetApi().Finger_Printing_GET_API(buildingAllApi.selectedBuildingID);
     List<poly.Nodes> waypoints = await polygonController.extractWaypoints();
     for (var point in waypoints) {
-      await addDotMarker(point, fingerPrintData!);
+      await addDotMarker(point, fingerPrintData);
     }
     print("enabled");
   }

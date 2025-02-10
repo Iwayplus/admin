@@ -27,6 +27,9 @@ class fingerPrintingGetApi {
       print(response.body);
       try{
         Map<String, dynamic> responseBody = json.decode(response.body);
+        if(json.decode(response.body) == null){
+          return null;
+        }
         return FingerPrintData.fromJson(responseBody);
       }catch(e){
         return null;
