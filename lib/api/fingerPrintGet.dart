@@ -5,16 +5,12 @@ import '../APIMODELS/FingerPrintData.dart';
 import '../fingerprinting/SensorFingerprint.dart';
 import '../SharedPreferenceHelper.dart';
 import 'RefreshTokenAPI.dart';
-
-
-class fingerPrintingGetApi {
+class fingerPrintingGetApi{
   final String baseUrl = kDebugMode? "https://dev.iwayplus.in/secured/get-fingerprinting-data/" : "https://maps.iwayplus.in/secured/get-fingerprinting-data/";
   String accessToken = "";
-
   Future<FingerPrintData> Finger_Printing_GET_API(String building_ID) async {
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
     accessToken = await prefs.getMap("signin")!["accessToken"];
-
     final response = await http.get(
       Uri.parse(baseUrl+building_ID),
       headers: {

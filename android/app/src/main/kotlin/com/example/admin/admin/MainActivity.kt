@@ -1,4 +1,4 @@
-package com.iwayplus.navigation
+package com.example.fingerprint
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
@@ -62,13 +62,11 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
-
         override fun onScanFailed(errorCode: Int) {
             Log.e("BluetoothScan", "Scan failed with error code: $errorCode")
             eventSink?.error("SCAN_FAILED", "Scan failed with error code: $errorCode", null)
         }
     }
-
     private val discoveryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val action: String? = intent.action
