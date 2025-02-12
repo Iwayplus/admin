@@ -37,7 +37,7 @@ class fingerPrintingApi {
 
     if (response.statusCode == 200) {
       print("fail 2");
-      return true ;
+      return true;
     }else if(response.statusCode == 403){
       String newAccessToken = await RefreshTokenAPI.refresh();
       accessToken = newAccessToken;

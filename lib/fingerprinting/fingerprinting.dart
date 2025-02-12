@@ -71,8 +71,11 @@ class Fingerprinting{
     print("inside enabling");
     _dotMarkers.clear();
     floor = polygonController.floor;
+    print("beaconcontroller::${beaconController.apibeaconmap}");
     apibeaconmap = beaconController.apibeaconmap;
+    print("beaconcontroller::${apibeaconmap}");
     var fingerPrintData = await fingerPrintingGetApi().Finger_Printing_GET_API(buildingAllApi.selectedBuildingID);
+    print("object it is returning::${fingerPrintData}");
     List<poly.Nodes> waypoints = await polygonController.extractWaypoints();
     for (var point in waypoints) {
       await addDotMarker(point, fingerPrintData);
@@ -100,7 +103,6 @@ class Fingerprinting{
     // Cancel any active subscriptions and reset
     _Lightsubscription?.cancel();
     _Lightsubscription = null;
-
     // Cancel the timer if active
     timer?.cancel();
     timer = null;
@@ -114,7 +116,6 @@ class Fingerprinting{
     if(fingerPrintData != null && fingerPrintData.fingerPrintData["${point.coordx},${point.coordy},$floor"] != null){
       svgIcon = await _svgToBitmapDescriptor('assets/exitservice.svg', Size(40, 40));
     }
-
     _dotMarkers.add(
       Marker(
           markerId: MarkerId('${point.lat!},${point.lon!}'),
@@ -130,7 +131,6 @@ class Fingerprinting{
     );
     _updateMarkers();
   }
-
   Future<void> addMarker(LatLng _markerPosition) async {
       _Markers.add(
         Marker(
@@ -147,13 +147,11 @@ class Fingerprinting{
   Future<BitmapDescriptor> _svgToBitmapDescriptor(String svgAsset, Size size,) async {
     // Load SVG data
     String svgString = await DefaultAssetBundle.of(_context).loadString(svgAsset);
-
     // Render SVG to picture
     DrawableRoot svgDrawableRoot = await svg.fromSvgString(svgString, svgString);
     final picture = svgDrawableRoot.toPicture(
       size: size, // Define the size of the SVG
     );
-
     // Convert to image
     final image = await picture.toImage(size.width.toInt(), size.height.toInt());
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
@@ -166,47 +164,38 @@ class Fingerprinting{
     return _dotMarkers.union(_Markers);
   }
 
-
-  Future<void> collectSensorDataEverySecond() async {
+  Future<void> collectSensorDataEverySecond()async{
     if(apibeaconmap != null){
       bluetoothScanAndroidClass.listenToScanUpdates(apibeaconmap!);
     }else{
       HelperClass.showToast("Getting beacon data!!");
     }
-
     _startListeningToScannedResults();
-
     data = Data(position: "${userPosition?.coordx},${userPosition?.coordy},$floor");
-
     gps.startGpsUpdates();
     gps.positionStream.listen((position){
       gpsPosition = position;
     });
-
     accelerometerEvents.listen((AccelerometerEvent event) {
       _x = event.x;
       _y = event.y;
       _z = event.z;
     });
-
-
     FlutterCompass.events!.listen((event){
       theta = event.heading!;
     });
-
     _Lightsubscription = _light.lightSensorStream.listen((value){
       _lightValue = value;
     });
-
     timer = Timer.periodic(Duration(seconds: 1), (timer) async {
-      List<Beacon> beacons = await fetchBeaconData();
+      print("apibeaconmap:: ${apibeaconmap}");
+      List<Beacon> beacons = await fetchBeaconData(apibeaconmap);
       print(beacons);
       var gpsData = await fetchGpsData();
       var wifi = await fetchWifiData();
       var magnetometerData = await fetchMagnetometerData();
       var accelerometerData = await fetchAccelerometerData();
       var lux = await fetchLux();
-
       var fingerprint = SensorFingerprint(
         beacons: beacons,
         wifi: wifi,
@@ -216,7 +205,6 @@ class Fingerprinting{
         lux: lux,
         timeStamp: dateFormat.format(DateTime.now().toUtc())
       );
-
       data?.sensorFingerprint ??= [];
       data?.sensorFingerprint?.add(fingerprint);
 
@@ -224,15 +212,15 @@ class Fingerprinting{
       
     });
   }
-
-  Future<bool> stopCollectingData() async {
+  Future<bool> stopCollectingData()async{
     timer?.cancel();
     bluetoothScanAndroidClass.stopScan();
     //cancel beacon stream here
-    return await fingerPrintingApi().Finger_Printing_API(buildingAllApi.selectedBuildingID, data!);
+    print("realtime data tht we got::${data!.toJson()}");
+    return true;
   }
 
-  void _startListeningToScannedResults() async {
+  void _startListeningToScannedResults()async{
     // check platform support and necessary requirements
     final can = await WiFiScan.instance.canGetScannedResults(askPermissions: true);
     if(can == CanGetScannedResults.yes){
@@ -242,21 +230,27 @@ class Fingerprinting{
     }
   }
 
-  Future<List<Beacon>> fetchBeaconData() async {
+  Future<List<Beacon>> fetchBeaconData(Map<String, beacon>? apibeaconmap) async {
     Map<String, List<int>> beaconvalues = await bluetoothScanAndroidClass.getDeviceWithRssi();
     Map<String, double> averageValue = await bluetoothScanAndroidClass.getDeviceWithAverage();
     Map<String, String> deviceNames = await bluetoothScanAndroidClass.getDeviceName();
 
+    print("beaconvalues ${beaconvalues} ${apibeaconmap}");
+
+
     List<Beacon> beacons = [];
     beaconvalues.forEach((key,value){
-      if(apibeaconmap != null && apibeaconmap![key] != null){
+      if(apibeaconmap![key]!= null){
+        print("inif");
         Position position = Position(x:(apibeaconmap![key]!.coordinateX??apibeaconmap![key]!.doorX!).toDouble(),y:(apibeaconmap![key]!.coordinateY??apibeaconmap![key]!.doorY!).toDouble());
         beacons.add(setBeacon(key, deviceNames[key], value.last,position,apibeaconmap![key]!.floor!.toString(),apibeaconmap![key]!.buildingID));
+      }else{
+        print("else");
       }
     });
     //call this line for every beacon scanned using a for loop
     // beacons.add(setBeacon(null,null,null));
-
+    print("scanned beacons:: ${beacons}");
     return beacons;
   }
 

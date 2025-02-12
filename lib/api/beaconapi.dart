@@ -32,8 +32,10 @@ class beaconapi {
       try{
         List<dynamic> responseBody = json.decode(response.body);
         List<beacon> beaconList = responseBody.map((data) => beacon.fromJson(data)).toList();
+        print("beacon listt:: ${beaconList}");
         return beaconList;
       }catch(e){
+        print("catched: ${e}");
           return [];
      }
     }else if (response.statusCode == 403) {

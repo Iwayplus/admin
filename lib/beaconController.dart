@@ -22,6 +22,7 @@ class BeaconController{
 
   Future<void> getBeacons() async {
     beaconData = await beaconapi().fetchBeaconData(buildingAllApi.selectedBuildingID);
+    print("beacon data ::${beaconData}");
     apibeaconmap ??={};
     for (var beacon in beaconData!) {
       if (beacon.name != null) {

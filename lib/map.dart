@@ -207,7 +207,14 @@ class _googleMapState extends State<googleMap> {
                     },
                   )],
                   child: Icon(Icons.code_off),
-                )
+                ),
+                FloatingActionButton(onPressed: (){
+
+                  fingerprinting.collectSensorDataEverySecond();
+                  Future.delayed(Duration(seconds: 5), () {
+                    fingerprinting.stopCollectingData();
+                  });
+                },child: Icon(Icons.person),)
               ],
             ),
           ),

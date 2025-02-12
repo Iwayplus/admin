@@ -101,7 +101,6 @@ class MainActivity : FlutterActivity() {
         val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
         registerReceiver(discoveryReceiver, filter)
     }
-
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
@@ -125,7 +124,6 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
-
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, EVENT_CHANNEL).setStreamHandler(object : EventChannel.StreamHandler {
             override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
                 eventSink = events

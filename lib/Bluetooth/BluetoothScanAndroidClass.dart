@@ -101,33 +101,25 @@ class BluetoothScanAndroidClass{
 
   void listenToScanUpdates(Map<String, beacon> apibeaconmap) {
     startScan();
-
     String deviceMacId = "";
     // Start listening to the stream continuously
     _scanSubscription = eventChannel.receiveBroadcastStream().listen((deviceDetail) {
       BluetoothDevice deviceDetails = parseDeviceDetails(deviceDetail);
       if(apibeaconmap.containsKey(deviceDetails.DeviceName)) {
+        print("device name: ${deviceDetails.DeviceName}");
         deviceMacId = deviceDetails.DeviceAddress;
-        deviceNames[deviceDetails.DeviceAddress] = deviceDetails.DeviceName;
-        rssiValues.putIfAbsent(deviceDetails.DeviceAddress, () => []);
-        rssiWeight.putIfAbsent(deviceDetails.DeviceAddress, () => []);
-
-
-        rssiValues[deviceDetails.DeviceAddress]!.add(int.parse(deviceDetails.DeviceRssi));
-        rssiWeight[deviceDetails.DeviceAddress]!.add(getWeight(getBinNumber(int.parse(deviceDetails.DeviceRssi).abs())));
-
-        if (rssiValues[deviceDetails.DeviceAddress]!.length > 7) {
-          rssiValues[deviceDetails.DeviceAddress]!.removeAt(0);
+        deviceNames[deviceDetails.DeviceName] = deviceDetails.DeviceName;
+        rssiValues.putIfAbsent(deviceDetails.DeviceName, () => []);
+        rssiWeight.putIfAbsent(deviceDetails.DeviceName, () => []);
+        rssiValues[deviceDetails.DeviceName]!.add(int.parse(deviceDetails.DeviceRssi));
+        rssiWeight[deviceDetails.DeviceName]!.add(getWeight(getBinNumber(int.parse(deviceDetails.DeviceRssi).abs())));
+        if (rssiValues[deviceDetails.DeviceName]!.length > 7) {
+          rssiValues[deviceDetails.DeviceName]!.removeAt(0);
         }
-
-        if(rssiWeight[deviceDetails.DeviceAddress]!.length > 7){
-          rssiWeight[deviceDetails.DeviceAddress]!.removeAt(0);
+        if(rssiWeight[deviceDetails.DeviceName]!.length > 7){
+          rssiWeight[deviceDetails.DeviceName]!.removeAt(0);
         }
-
-
         rssiAverage = calculateAverageFromRssi(rssiValues,deviceNames,rssiWeight);
-
-
         closestDeviceDetails = findLowestRssiDevice(rssiAverage);
       }
     }, onError: (error) {
