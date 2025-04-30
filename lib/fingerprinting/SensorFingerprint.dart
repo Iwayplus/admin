@@ -119,8 +119,8 @@ class Position {
 
   factory Position.fromJson(Map<String, dynamic> json) {
     return Position(
-      x: json['x'],
-      y: json['y'],
+      x: json['x'].toDouble(),
+      y: json['y'].toDouble(),
     );
   }
 

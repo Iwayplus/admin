@@ -18,7 +18,6 @@ class buildingAllApi {
   static String selectedBuildingName="";
   static String selectedVenue="";
   static Map<String,g.LatLng> allBuildingID = {};
-  
   static String outdoorID = "";
 
   

@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:device_information/device_information.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../APIMODELS/patchDataModel.dart';
@@ -14,12 +14,33 @@ class patchAPI {
   Future<patchDataModel> fetchPatchData(String id) async {
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
     accessToken = await prefs.getMap("signin")!["accessToken"];
-    String manufacturer = kIsWeb?"WEB":await DeviceInformation.deviceManufacturer;
-    String deviceModel = kIsWeb?"WEB":await DeviceInformation.deviceModel;
+    final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
+
+    String deviceManufacturer = "Unknown";
+    String deviceModel = "Unknown";
+
+    if (kIsWeb) {
+      deviceManufacturer = "WEB";
+      deviceModel = "WEB";
+    }else {
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        final androidInfo = await deviceInfoPlugin.androidInfo;
+        deviceManufacturer = androidInfo.manufacturer ?? "Unknown";
+        deviceModel = androidInfo.model ?? "Unknown";
+      } else if (defaultTargetPlatform == TargetPlatform.iOS){
+        final iosInfo = await deviceInfoPlugin.iosInfo;
+        deviceManufacturer = "Apple"; // iPhones are always manufactured by Apple
+        deviceModel = iosInfo.utsname.machine ?? "Unknown";
+      } else {
+        // Handle other platforms if needed (macOS, Windows, Linux)
+        deviceManufacturer = "Unknown Platform";
+        deviceModel = "Unknown Platform";
+      }
+    }
 
     final Map<String, dynamic> data = {
       "id": id,
-      "manufacturer":manufacturer,
+      "manufacturer":deviceManufacturer,
       "devicemodel": deviceModel
     };
 

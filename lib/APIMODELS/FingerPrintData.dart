@@ -14,6 +14,7 @@ class FingerPrintData {
   });
 
   factory FingerPrintData.fromJson(Map<String, dynamic> json) {
+
     return FingerPrintData(
       id: json['_id'],
       buildingID: json['building_ID'],
@@ -101,7 +102,7 @@ class GPSData {
     return GPSData(
       latitude: json['latitude'],
       longitude: json['longitude'],
-      accuracy: json['accuracy'],
+      accuracy:(json['accuracy']!=null)? json['accuracy'].toDouble():json['accuracy'],
       altitude: json['altitude'],
     );
   }
@@ -122,8 +123,11 @@ class MagnetometerData {
   MagnetometerData({required this.value});
 
   factory MagnetometerData.fromJson(Map<String, dynamic> json) {
-    return MagnetometerData(value: json['value']);
+    return MagnetometerData(
+      value: (json['value'] != null) ? json['value'].toDouble() : 0.0,
+    );
   }
+
 
   Map<String, dynamic> toJson() {
     return {
@@ -145,9 +149,9 @@ class AccelerometerData {
 
   factory AccelerometerData.fromJson(Map<String, dynamic> json) {
     return AccelerometerData(
-      x: json['x'],
-      y: json['y'],
-      z: json['z'],
+      x: json['x'].toDouble(),
+      y: json['y'].toDouble(),
+      z: json['z'].toDouble(),
     );
   }
 
