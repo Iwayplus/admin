@@ -117,6 +117,9 @@ class _googleMapState extends State<googleMap> {
     print("updating");
     setState(() {});
   }
+
+  Color buttonColor=Colors.red;
+  String nearesPoint="";
   
   @override
   Widget build(BuildContext context) {
@@ -142,6 +145,8 @@ class _googleMapState extends State<googleMap> {
             bottom: 150,
             child: Column(
               children: [
+
+                Text("${nearesPoint}"),
                 SpeedDial(
                   activeIcon: Icons.close,
                   backgroundColor: Colors.white,
@@ -207,7 +212,40 @@ class _googleMapState extends State<googleMap> {
                     },
                   )],
                   child: Icon(Icons.code_off),
-                )
+                ),
+                SizedBox(height: 20,),
+                FloatingActionButton(
+                  backgroundColor: buttonColor,
+                  onPressed: () async {
+                  setState(() {
+                    buttonColor=Colors.green;
+                  });
+                  fingerprinting.collectSensorDataEverySecond();
+                  await Future.delayed(Duration(seconds: 10));
+                  fingerprinting.stopCollectingRealData();
+                  setState(() {
+                    buttonColor=Colors.red;
+                  });
+                },child: Icon(Icons.account_balance),),
+                SizedBox(height: 25,),
+                FloatingActionButton(
+                  backgroundColor: Colors.white,
+                  onPressed: () async {
+                  nearesPoint=fingerprinting.findBestMatchingLocation();
+                  List<String> vals=nearesPoint.split(',');
+                  List<poly.Nodes> waypoints = await polygonController.extractWaypoints();
+                  for (var point in waypoints) {
+                    if(vals[0]==point.coordx.toString() && vals[1]==point.coordy.toString())
+                      {
+                        fingerprinting.addMarker(LatLng(point.lat!, point.lon!));
+                        return;
+                      }
+                  }
+                  setState(() {
+                    updateMarkers();
+                    nearesPoint;
+                  });
+                  },child: Icon(Icons.person),)
               ],
             ),
           ),

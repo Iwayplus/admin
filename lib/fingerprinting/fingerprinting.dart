@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:admin/HelperClass.dart';
@@ -67,12 +68,17 @@ class Fingerprinting{
     _context = value;
   }
 
+  Map<String,dynamic> preProcessedData={};
+  Map<String,dynamic> realTimeData={};
+
   Future<void> enableFingerprinting(PolygonController polygonController, BeaconController beaconController) async {
     print("inside enabling");
     _dotMarkers.clear();
     floor = polygonController.floor;
     apibeaconmap = beaconController.apibeaconmap;
     var fingerPrintData = await fingerPrintingGetApi().Finger_Printing_GET_API(buildingAllApi.selectedBuildingID);
+    print("fingerprint data:${fingerPrintData!.fingerPrintData}");
+    preProcessedData=computeBeaconStats(fingerPrintData!.fingerPrintData);
     List<poly.Nodes> waypoints = await polygonController.extractWaypoints();
     for (var point in waypoints) {
       await addDotMarker(point, fingerPrintData);
@@ -120,7 +126,7 @@ class Fingerprinting{
           markerId: MarkerId('${point.lat!},${point.lon!}'),
           position: LatLng(point.lat!, point.lon!),
           icon: svgIcon,
-          onTap: (){
+          onTap:(){
             _Markers.clear();
             FingerPrintingPannel.showPanel();
             userPosition = point;
@@ -131,7 +137,149 @@ class Fingerprinting{
     _updateMarkers();
   }
 
+
+
+
+
+
+  Map<String, dynamic> computeBeaconStats(Map<String, List<fp.SensorData>> locationSensorData) {
+    final result = <String, dynamic>{};
+
+    locationSensorData.forEach((locationKey, sensorDataList) {
+      final beaconMap = <String, List<int>>{};
+      final outlierMap = <String, List<Map<String, dynamic>>>{};
+
+      for (var data in sensorDataList) {
+        for (var beacon in data.beacons!) {
+          if (beacon.beaconRssi! >= -95) {
+            beaconMap.putIfAbsent(beacon.beaconMacId!, () => []).add(beacon.beaconRssi!);
+          } else {
+            outlierMap.putIfAbsent(beacon.beaconMacId!, () => []).add({
+              'value': beacon.beaconRssi,
+              'outlierType': 'weak_signal',
+            });
+          }
+        }
+      }
+
+      final beaconStats = beaconMap.map((macId, rssiList) {
+        final mean = rssiList.reduce((a, b) => a + b) / rssiList.length;
+        final variance = rssiList.fold(0.0, (sum, val) => sum + pow(val - mean, 2)) / rssiList.length;
+        final stdDev = sqrt(variance);
+
+        return MapEntry(macId, {
+          'mean': mean,
+          'stdDev': stdDev,
+          'outliers': outlierMap[macId] ?? [],
+        });
+      });
+
+      result[locationKey] = {
+        'beacons': beaconStats,
+      };
+    });
+
+    return result;
+  }
+
+
+  Map<String, dynamic> computeRealtimeBeaconStats(List<SensorFingerprint> realtimeSensorData) {
+    final result = <String, dynamic>{};
+    final beaconMap = <String, List<int>>{};
+    final outlierMap = <String, List<Map<String, dynamic>>>{};
+
+    for (var data in realtimeSensorData) {
+      for (var beacon in data.beacons!) {
+        if (beacon.beaconRssi! >= -95) {
+          beaconMap.putIfAbsent(beacon.beaconMacId!, () => []).add(beacon.beaconRssi!);
+        } else {
+          outlierMap.putIfAbsent(beacon.beaconMacId!, () => []).add({
+            'value': beacon.beaconRssi,
+            'outlierType': 'weak_signal',
+          });
+        }
+      }
+    }
+
+    final beaconStats = beaconMap.map((macId, rssiList) {
+      final mean = rssiList.reduce((a, b) => a + b) / rssiList.length;
+      final variance = rssiList.fold(0.0, (sum, val) => sum + pow(val - mean, 2)) / rssiList.length;
+      final stdDev = sqrt(variance);
+
+      return MapEntry(macId,{
+        'mean': mean,
+        'stdDev': stdDev,
+        'outliers': outlierMap[macId] ?? [],
+      });
+    });
+
+    result['realtime'] = {
+      'beacons': beaconStats,
+    };
+
+    print("realtime data:${result}");
+
+    return result;
+  }
+
+
+  String findBestMatchingLocation() {
+    final realtimeBeacons = realTimeData['realtime']?['beacons'] as Map<String, dynamic>;
+
+    // Step 1: Determine max overlapping beacons count
+    int maxOverlap = 0;
+    final Map<String, int> locationOverlapMap = {};
+
+    preProcessedData.forEach((locationKey, data) {
+      final preBeacons = data['beacons'] as Map<String, dynamic>;
+      final overlapCount = preBeacons.keys
+          .where((macId) => realtimeBeacons.containsKey(macId))
+          .length;
+
+      locationOverlapMap[locationKey] = overlapCount;
+      if (overlapCount > maxOverlap) {
+        maxOverlap = overlapCount;
+      }
+    });
+
+    // Step 2: Filter locations with max overlap
+    String? nearestLocation;
+    double minDistance = double.infinity;
+
+    locationOverlapMap.forEach((locationKey, overlap) {
+      if (overlap == maxOverlap) {
+        final preBeacons = preProcessedData[locationKey]['beacons'] as Map<String, dynamic>;
+        double distance = 0;
+
+        for (final macId in realtimeBeacons.keys) {
+          if (preBeacons.containsKey(macId)) {
+            final realMean = realtimeBeacons[macId]['mean'] as double;
+            final preMean = preBeacons[macId]['mean'] as double;
+
+            distance += pow(preMean - realMean, 2);
+          }
+        }
+
+        distance = sqrt(distance);
+        if (distance < minDistance) {
+          minDistance = distance;
+          nearestLocation = locationKey;
+        }
+      }
+    });
+
+    print("nearestPOint:${nearestLocation}");
+
+    realTimeData.clear();
+    locationOverlapMap.clear();
+    minDistance=double.infinity;
+    return nearestLocation ?? 'unknown';
+  }
+
+
+
   Future<void> addMarker(LatLng _markerPosition) async {
+    print("latlng:${_markerPosition.latitude},${_markerPosition.longitude}");
       _Markers.add(
         Marker(
             markerId: MarkerId('${_markerPosition.latitude},${_markerPosition.longitude}'),
@@ -216,13 +364,11 @@ class Fingerprinting{
         lux: lux,
         timeStamp: dateFormat.format(DateTime.now().toUtc())
       );
-
       data?.sensorFingerprint ??= [];
       data?.sensorFingerprint?.add(fingerprint);
-
       print("data.toJson() ${data?.toJson()}");
-      
     });
+
   }
 
   Future<bool> stopCollectingData() async {
@@ -230,6 +376,15 @@ class Fingerprinting{
     bluetoothScanAndroidClass.stopScan();
     //cancel beacon stream here
     return await fingerPrintingApi().Finger_Printing_API(buildingAllApi.selectedBuildingID, data!);
+  }
+
+  Future<bool> stopCollectingRealData() async {
+    timer?.cancel();
+    bluetoothScanAndroidClass.stopScan();
+    //cancel beacon stream here
+   realTimeData= computeRealtimeBeaconStats(data!.sensorFingerprint!);
+
+    return true;
   }
 
   void _startListeningToScannedResults() async {

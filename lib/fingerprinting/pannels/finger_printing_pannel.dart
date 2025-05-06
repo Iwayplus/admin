@@ -148,7 +148,7 @@ class _pinLandmarkState extends State<pinLandmark> {
         SizedBox(height: 12,),
         ValueListenableBuilder<int>(
           valueListenable: remainingTime,
-          builder: (context, value, child) {
+          builder:(context, value, child) {
             return Text(
               "Time left: ${value}s",
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),

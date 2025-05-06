@@ -12,6 +12,8 @@ class fingerPrintingApi {
 
   Future<bool> Finger_Printing_API(String building_ID, Data fingerPrint) async {
 
+    print("buildigid:${building_ID}");
+
     if(fingerPrint.sensorFingerprint == null){
       print("fail 1");
       return false;

@@ -24,7 +24,8 @@ class patchAPI {
     };
 
     final response = await http.post(
-      Uri.parse(baseUrl), body: json.encode(data),
+      Uri.parse(baseUrl),
+      body: json.encode(data),
       headers: {
         'Content-Type': 'application/json',
         'x-access-token': accessToken,

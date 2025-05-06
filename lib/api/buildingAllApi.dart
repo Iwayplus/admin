@@ -20,11 +20,8 @@ class buildingAllApi {
   static Map<String,g.LatLng> allBuildingID = {};
   
   static String outdoorID = "";
-
-  
   Future<List<buildingAll>> fetchBuildingAllData() async {
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
-    
     final response = await http.post(
       Uri.parse(baseUrl),
       headers: {
@@ -39,6 +36,7 @@ class buildingAllApi {
           .map((data) => buildingAll.fromJson(data))
           .toList();
       await findNearbyBuilding(buildingList);
+      print("buildinglist ${buildingList}");
       return buildingList;
 
     }else if(response.statusCode == 403){
@@ -49,14 +47,15 @@ class buildingAllApi {
       throw Exception('Failed to load data');
     }
   }
-  
   Future<void> findNearbyBuilding(List<buildingAll> buildings) async {
     GPS gps = GPS();
     Position userPosition = await gps.getCurrentCoordinates();
     double d = double.infinity;
     for (var building in buildings) {
+      print("${building.buildingName}   <>    ${building.coordinates}");
       double distance = tools.calculateAerialDist(userPosition.latitude, userPosition.longitude, building.coordinates![0], building.coordinates![1]);
       if(distance<d){
+        print("selecting building ${building.buildingName}");
         selectedBuildingID = building.sId!;
         selectedBuildingName = building.buildingName!;
         selectedVenue = building.venueName!;

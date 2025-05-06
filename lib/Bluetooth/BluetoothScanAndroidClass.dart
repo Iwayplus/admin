@@ -109,26 +109,20 @@ class BluetoothScanAndroidClass{
       if(apibeaconmap.containsKey(deviceDetails.DeviceName)) {
         deviceMacId = deviceDetails.DeviceAddress;
         deviceNames[deviceDetails.DeviceAddress] = deviceDetails.DeviceName;
-        rssiValues.putIfAbsent(deviceDetails.DeviceAddress, () => []);
+        rssiValues.putIfAbsent(deviceDetails.DeviceName, () => []);
         rssiWeight.putIfAbsent(deviceDetails.DeviceAddress, () => []);
-
-
-        rssiValues[deviceDetails.DeviceAddress]!.add(int.parse(deviceDetails.DeviceRssi));
+        rssiValues[deviceDetails.DeviceName]!.add(int.parse(deviceDetails.DeviceRssi));
         rssiWeight[deviceDetails.DeviceAddress]!.add(getWeight(getBinNumber(int.parse(deviceDetails.DeviceRssi).abs())));
-
-        if (rssiValues[deviceDetails.DeviceAddress]!.length > 7) {
-          rssiValues[deviceDetails.DeviceAddress]!.removeAt(0);
+        if (rssiValues[deviceDetails.DeviceName]!.length > 7) {
+          rssiValues[deviceDetails.DeviceName]!.removeAt(0);
         }
-
         if(rssiWeight[deviceDetails.DeviceAddress]!.length > 7){
           rssiWeight[deviceDetails.DeviceAddress]!.removeAt(0);
         }
-
-
         rssiAverage = calculateAverageFromRssi(rssiValues,deviceNames,rssiWeight);
-
-
         closestDeviceDetails = findLowestRssiDevice(rssiAverage);
+        print("device values:${rssiValues}");
+
       }
     }, onError: (error) {
       print('Error receiving device updates: $error');

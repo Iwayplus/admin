@@ -102,14 +102,13 @@ class PolygonController{
                       points: coordinates,
                       strokeWidth: 1,
                       // Modify the color and opacity based on the selectedRoomId
-
                       strokeColor: Color(0xffE99696),
                       fillColor: Color(0xffFBEAEA),
                       consumeTapEvents: true,
                   ));
                 }
               } else{
-                if (coordinates.length > 2) {
+                if (coordinates.length>2) {
                   coordinates.add(coordinates.first);
                   _polygons!.add(Polygon(
                       polygonId: PolygonId(
@@ -127,7 +126,7 @@ class PolygonController{
               }
             } else if (polyArray.polygonType == 'Cubicle') {
               if (polyArray.cubicleName == "Green Area" ||
-                  polyArray.cubicleName == "Green Area | Pots" || polyArray.name!.toLowerCase().contains('auditorium') || polyArray.name!.toLowerCase().contains('basketball') || polyArray.name!.toLowerCase().contains('cricket') || polyArray.name!.toLowerCase().contains('football') || polyArray.name!.toLowerCase().contains('gym') || polyArray.name!.toLowerCase().contains('swimming') || polyArray.name!.toLowerCase().contains('tennis')) {
+                  polyArray.cubicleName == "Green Area | Pots" || (polyArray.name??"").toLowerCase().contains('auditorium') || (polyArray.name??"").toLowerCase().contains('basketball') || (polyArray.name??"").toLowerCase().contains('cricket') || (polyArray.name??"").toLowerCase().contains('football') || (polyArray.name??"").toLowerCase().contains('gym') || (polyArray.name??"").toLowerCase().contains('swimming') || (polyArray.name??"").toLowerCase().contains('tennis')) {
                 if (coordinates.length > 2) {
                   coordinates.add(coordinates.first);
                   _polygons!.add(Polygon(

@@ -102,7 +102,7 @@ class GPSData {
     return GPSData(
       latitude: json['latitude'],
       longitude: json['longitude'],
-      accuracy: json['accuracy'],
+      accuracy:(json['accuracy']!=null)? json['accuracy'].toDouble():json['accuracy'],
       altitude: json['altitude'],
     );
   }
@@ -123,8 +123,11 @@ class MagnetometerData {
   MagnetometerData({required this.value});
 
   factory MagnetometerData.fromJson(Map<String, dynamic> json) {
-    return MagnetometerData(value: json['value']);
+    return MagnetometerData(
+      value: (json['value'] != null) ? json['value'].toDouble() : 0.0,
+    );
   }
+
 
   Map<String, dynamic> toJson() {
     return {

@@ -22,18 +22,13 @@ class fingerPrintingGetApi {
         'x-access-token': accessToken
       },
     );
-
+    print("response ${response.statusCode}  ${response.body}");
     if (response.statusCode == 200) {
-      print(response.body);
-      try{
         Map<String, dynamic> responseBody = json.decode(response.body);
         if(json.decode(response.body) == null){
           return null;
         }
         return FingerPrintData.fromJson(responseBody);
-      }catch(e){
-        return null;
-      }
 
     }else if(response.statusCode == 403){
       String newAccessToken = await RefreshTokenAPI.refresh();
