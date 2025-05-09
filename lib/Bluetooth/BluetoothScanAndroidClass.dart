@@ -101,13 +101,12 @@ class BluetoothScanAndroidClass{
 
   void listenToScanUpdates(Map<String, beacon> apibeaconmap) {
     startScan();
-
     String deviceMacId = "";
     // Start listening to the stream continuously
     _scanSubscription = eventChannel.receiveBroadcastStream().listen((deviceDetail) {
       BluetoothDevice deviceDetails = parseDeviceDetails(deviceDetail);
       if(apibeaconmap.containsKey(deviceDetails.DeviceName)) {
-        deviceMacId = deviceDetails.DeviceAddress;
+        deviceMacId = deviceDetails.DeviceName;
         deviceNames[deviceDetails.DeviceAddress] = deviceDetails.DeviceName;
         rssiValues.putIfAbsent(deviceDetails.DeviceName, () => []);
         rssiWeight.putIfAbsent(deviceDetails.DeviceAddress, () => []);
@@ -121,37 +120,38 @@ class BluetoothScanAndroidClass{
         }
         rssiAverage = calculateAverageFromRssi(rssiValues,deviceNames,rssiWeight);
         closestDeviceDetails = findLowestRssiDevice(rssiAverage);
-        print("device values:${rssiValues}");
-
       }
     }, onError: (error) {
       print('Error receiving device updates: $error');
     });
 
-    if(isScanning) {
-      Timer.periodic(Duration(seconds: 2), (timer) {
-        if (rssiValues.isNotEmpty) {
-          rssiValues.forEach((key, value) {
-            if (deviceMacId != key) {
-              if (value.isNotEmpty) value.removeAt(0);
-            }
-          });
-        }
 
-        if (rssiWeight.isNotEmpty) {
-          rssiWeight.forEach((key, value) {
-            if (deviceMacId != key) {
-              if (value.isNotEmpty) value.removeAt(0);
-            }
-          });
-        }
-        // Calculate average RSSI values
-        Map<String, double> sumMap = calculateAverage();
-        // Sort the map by value (e.g., strongest signal first)
-        Map<String, double> sortedSumMap = sortMapByValue(sumMap);
-        sumMapCallBack = sortedSumMap;
-      });
-    }
+        Timer.periodic(Duration(seconds: 2), (timer) {
+          print("inIsScanning");
+          if (rssiValues.isNotEmpty && rssiValues.length>1) {
+            rssiValues.forEach((key, value) {
+              if (deviceMacId != key) {
+                if (value.isNotEmpty) value.removeAt(0);
+              }
+            });
+          }
+
+          if (rssiWeight.isNotEmpty) {
+            rssiWeight.forEach((key, value) {
+              if (deviceMacId != key) {
+                if (value.isNotEmpty) value.removeAt(0);
+              }
+            });
+          }
+          // Calculate average RSSI values
+          Map<String, double> sumMap = calculateAverage();
+          // Sort the map by value (e.g., strongest signal first)
+          Map<String, double> sortedSumMap = sortMapByValue(sumMap);
+          sumMapCallBack = sortedSumMap;
+        });
+
+
+
   }
 
   Map<String, List<int>> getDeviceWithRssi(){

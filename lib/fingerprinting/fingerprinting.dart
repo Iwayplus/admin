@@ -141,36 +141,69 @@ class Fingerprinting{
 
 
 
-
   Map<String, dynamic> computeBeaconStats(Map<String, List<fp.SensorData>> locationSensorData) {
     final result = <String, dynamic>{};
 
     locationSensorData.forEach((locationKey, sensorDataList) {
       final beaconMap = <String, List<int>>{};
-      final outlierMap = <String, List<Map<String, dynamic>>>{};
+      final weakOutlierMap = <String, List<Map<String, dynamic>>>{};
+      final deviationOutlierMap = <String, List<Map<String, dynamic>>>{};
 
+      // Step 1: Collect all valid RSSI readings
       for (var data in sensorDataList) {
-        for (var beacon in data.beacons!) {
-          if (beacon.beaconRssi! >= -95) {
-            beaconMap.putIfAbsent(beacon.beaconMacId!, () => []).add(beacon.beaconRssi!);
+        for (var beacon in data.beacons ?? []) {
+          final macId = beacon.beaconMacId;
+          final rssi = beacon.beaconRssi;
+
+          if (macId == null || rssi == null) continue;
+
+          if (rssi >= -95) {
+            beaconMap.putIfAbsent(macId, () => []).add(rssi);
           } else {
-            outlierMap.putIfAbsent(beacon.beaconMacId!, () => []).add({
-              'value': beacon.beaconRssi,
+            weakOutlierMap.putIfAbsent(macId, () => []).add({
+              'value': rssi,
               'outlierType': 'weak_signal',
             });
           }
         }
       }
 
+      // Step 2: Compute stats + deviation outliers
       final beaconStats = beaconMap.map((macId, rssiList) {
         final mean = rssiList.reduce((a, b) => a + b) / rssiList.length;
         final variance = rssiList.fold(0.0, (sum, val) => sum + pow(val - mean, 2)) / rssiList.length;
         final stdDev = sqrt(variance);
 
+        final cleanedRssiList = <int>[];
+        for (var rssi in rssiList) {
+          if (stdDev == 0 || (rssi >= mean - 2 * stdDev && rssi <= mean + 2 * stdDev)) {
+            cleanedRssiList.add(rssi);
+          } else {
+            deviationOutlierMap.putIfAbsent(macId, () => []).add({
+              'value': rssi,
+              'outlierType': 'deviation_outlier',
+            });
+          }
+        }
+
+        // Recalculate mean and std dev after removing deviation outliers
+        final finalMean = cleanedRssiList.isNotEmpty
+            ? cleanedRssiList.reduce((a, b) => a + b) / cleanedRssiList.length
+            : 0.0;
+        final finalVariance = cleanedRssiList.isNotEmpty
+            ? cleanedRssiList.fold(0.0, (sum, val) => sum + pow(val - finalMean, 2)) / cleanedRssiList.length
+            : 0.0;
+        final finalStdDev = sqrt(finalVariance);
+
+        final allOutliers = [
+          ...?weakOutlierMap[macId],
+          ...?deviationOutlierMap[macId],
+        ];
+
         return MapEntry(macId, {
-          'mean': mean,
-          'stdDev': stdDev,
-          'outliers': outlierMap[macId] ?? [],
+          'mean': finalMean,
+          'stdDev': finalStdDev,
+          'outliers': allOutliers,
         });
       });
 
@@ -186,30 +219,60 @@ class Fingerprinting{
   Map<String, dynamic> computeRealtimeBeaconStats(List<SensorFingerprint> realtimeSensorData) {
     final result = <String, dynamic>{};
     final beaconMap = <String, List<int>>{};
-    final outlierMap = <String, List<Map<String, dynamic>>>{};
+    final weakOutlierMap = <String, List<Map<String, dynamic>>>{};
+    final deviationOutlierMap = <String, List<Map<String, dynamic>>>{};
 
+    // Step 1: Collect RSSI values and weak signal outliers
     for (var data in realtimeSensorData) {
-      for (var beacon in data.beacons!) {
-        if (beacon.beaconRssi! >= -95) {
-          beaconMap.putIfAbsent(beacon.beaconMacId!, () => []).add(beacon.beaconRssi!);
+      for (var beacon in data.beacons ?? []) {
+        final macId = beacon.beaconMacId;
+        final rssi = beacon.beaconRssi;
+        if (macId == null || rssi == null) continue;
+        if (rssi >= -95) {
+          beaconMap.putIfAbsent(macId, () => []).add(rssi);
         } else {
-          outlierMap.putIfAbsent(beacon.beaconMacId!, () => []).add({
-            'value': beacon.beaconRssi,
+          weakOutlierMap.putIfAbsent(macId, () => []).add({
+            'value': rssi,
             'outlierType': 'weak_signal',
           });
         }
       }
     }
-
+    // Step 2: Compute stats and flag deviation outliers
     final beaconStats = beaconMap.map((macId, rssiList) {
       final mean = rssiList.reduce((a, b) => a + b) / rssiList.length;
       final variance = rssiList.fold(0.0, (sum, val) => sum + pow(val - mean, 2)) / rssiList.length;
       final stdDev = sqrt(variance);
 
-      return MapEntry(macId,{
-        'mean': mean,
-        'stdDev': stdDev,
-        'outliers': outlierMap[macId] ?? [],
+      final cleanedRssiList = <int>[];
+      for (var rssi in rssiList) {
+        if (stdDev == 0 || (rssi >= mean - 2 * stdDev && rssi <= mean + 2 * stdDev)) {
+          cleanedRssiList.add(rssi);
+        } else {
+          deviationOutlierMap.putIfAbsent(macId, () => []).add({
+            'value': rssi,
+            'outlierType': 'deviation_outlier',
+          });
+        }
+      }
+
+      final finalMean = cleanedRssiList.isNotEmpty
+          ? cleanedRssiList.reduce((a, b) => a + b) / cleanedRssiList.length
+          : 0.0;
+      final finalVariance = cleanedRssiList.isNotEmpty
+          ? cleanedRssiList.fold(0.0, (sum, val) => sum + pow(val - finalMean, 2)) / cleanedRssiList.length
+          : 0.0;
+      final finalStdDev = sqrt(finalVariance);
+
+      final allOutliers = [
+        ...?weakOutlierMap[macId],
+        ...?deviationOutlierMap[macId],
+      ];
+
+      return MapEntry(macId, {
+        'mean': finalMean,
+        'stdDev': finalStdDev,
+        'outliers': allOutliers,
       });
     });
 
@@ -217,16 +280,160 @@ class Fingerprinting{
       'beacons': beaconStats,
     };
 
-    print("realtime data:${result}");
+    print("realtime data: $result");
 
     return result;
   }
 
 
-  String findBestMatchingLocation() {
+
+  // String findBestMatchingLocationWithCosine() {
+  //   final realtimeBeacons = realTimeData['realtime']?['beacons'] as Map<String, dynamic>;
+  //   if (realtimeBeacons.isEmpty) return 'unknown';
+  //
+  //   int maxOverlap = 0;
+  //   final Map<String, int> locationOverlapMap = {};
+  //
+  //   // Step 1: Calculate overlaps
+  //   preProcessedData.forEach((locationKey, data) {
+  //     final preBeacons = data['beacons'] as Map<String, dynamic>;
+  //     final overlapCount = preBeacons.keys
+  //         .where((macId) => realtimeBeacons.containsKey(macId))
+  //         .length;
+  //
+  //     locationOverlapMap[locationKey] = overlapCount;
+  //     if (overlapCount > maxOverlap) {
+  //       maxOverlap = overlapCount;
+  //     }
+  //   });
+  //
+  //   // Step 2: Use cosine similarity for locations with max overlap
+  //   String? bestLocation;
+  //   double? highestSimilarity = -1;
+  //
+  //   locationOverlapMap.forEach((locationKey, overlap) {
+  //     if (overlap == maxOverlap) {
+  //       final preBeacons = preProcessedData[locationKey]['beacons'] as Map<String, dynamic>;
+  //
+  //       double dotProduct = 0;
+  //       double magnitudeA = 0;
+  //       double magnitudeB = 0;
+  //
+  //       for (final macId in realtimeBeacons.keys) {
+  //         if (preBeacons.containsKey(macId)) {
+  //           final realMean = realtimeBeacons[macId]['mean'] as double;
+  //           final preMean = preBeacons[macId]['mean'] as double;
+  //
+  //           dotProduct += realMean * preMean;
+  //           magnitudeA += pow(realMean, 2);
+  //           magnitudeB += pow(preMean, 2);
+  //         }
+  //       }
+  //
+  //       final denominator = sqrt(magnitudeA) * sqrt(magnitudeB);
+  //       final double similarity = denominator == 0 ? 0 : dotProduct / denominator;
+  //
+  //       if (similarity > highestSimilarity!) {
+  //         highestSimilarity = similarity;
+  //         bestLocation = locationKey;
+  //       }
+  //     }
+  //   });
+  //
+  //   print("Best match (cosine): $bestLocation");
+  //
+  //   realTimeData.clear();
+  //   locationOverlapMap.clear();
+  //   bestLocation=null;
+  //
+  //   return bestLocation ?? 'unknown';
+  // }
+
+
+  // String findBestMatchingLocationHybrid({double weightCosine = 0.6, double weightDistance = 0.4}) {
+  //   final realtimeBeacons = realTimeData['realtime']?['beacons'] as Map<String, dynamic>;
+  //   if (realtimeBeacons.isEmpty) return 'unknown';
+  //
+  //   int maxOverlap = 0;
+  //   final Map<String, int> locationOverlapMap = {};
+  //
+  //   // Step 1: Compute overlaps
+  //   preProcessedData.forEach((locationKey, data) {
+  //     final preBeacons = data['beacons'] as Map<String, dynamic>;
+  //     final overlapCount = preBeacons.keys
+  //         .where((macId) => realtimeBeacons.containsKey(macId))
+  //         .length;
+  //
+  //     locationOverlapMap[locationKey] = overlapCount;
+  //     if (overlapCount > maxOverlap) {
+  //       maxOverlap = overlapCount;
+  //     }
+  //   });
+  //
+  //   String? bestLocation;
+  //   double bestScore = -1;
+  //
+  //   locationOverlapMap.forEach((locationKey, overlap) {
+  //     if (overlap == maxOverlap) {
+  //       final preBeacons = preProcessedData[locationKey]['beacons'] as Map<String, dynamic>;
+  //
+  //       double dotProduct = 0;
+  //       double magnitudeA = 0;
+  //       double magnitudeB = 0;
+  //       double distanceSum = 0;
+  //
+  //       for (final macId in realtimeBeacons.keys) {
+  //         if (preBeacons.containsKey(macId)) {
+  //           final realMean = realtimeBeacons[macId]['mean'] as double;
+  //           final preMean = preBeacons[macId]['mean'] as double;
+  //           dotProduct += realMean * preMean;
+  //           magnitudeA += pow(realMean, 2);
+  //           magnitudeB += pow(preMean, 2);
+  //
+  //           distanceSum += pow(preMean - realMean, 2);
+  //         }
+  //       }
+  //
+  //       final cosineDenominator = sqrt(magnitudeA) * sqrt(magnitudeB);
+  //       final cosineSim = cosineDenominator == 0 ? 0 : dotProduct / cosineDenominator;
+  //
+  //       final euclideanDistance = sqrt(distanceSum);
+  //       final invDistanceScore = euclideanDistance == 0 ? 1 : 1 / euclideanDistance; // normalize
+  //
+  //       final hybridScore = (cosineSim * weightCosine) + (invDistanceScore * weightDistance);
+  //
+  //       if (hybridScore > bestScore) {
+  //         bestScore = hybridScore;
+  //         bestLocation = locationKey;
+  //       }
+  //     }
+  //   });
+  //
+  //   print("Best location (hybrid): $bestLocation");
+  //
+  //   realTimeData.clear();
+  //   locationOverlapMap.clear();
+  //   bestScore=-1;
+  //   realtimeBeacons.clear();
+  //
+  //
+  //   return bestLocation ?? 'unknown';
+  // }
+
+
+
+  List<String> predictionHistory = [];
+
+  String findBestMatchingLocationHybrid({
+    int historyLimit = 7,
+    double cosineWeight = 0.4,
+    double distanceWeight = 0.6,
+    double confidenceThreshold = 0.4,
+  }) {
+    realTimeData = computeRealtimeBeaconStats(data!.sensorFingerprint!);
     final realtimeBeacons = realTimeData['realtime']?['beacons'] as Map<String, dynamic>;
 
-    // Step 1: Determine max overlapping beacons count
+    // Step 1: Determine max overlapping beacons
     int maxOverlap = 0;
     final Map<String, int> locationOverlapMap = {};
 
@@ -242,13 +449,17 @@ class Fingerprinting{
       }
     });
 
-    // Step 2: Filter locations with max overlap
-    String? nearestLocation;
-    double minDistance = double.infinity;
+    // Step 2: Compare cosine + distance for locations with max overlap
+    String? bestLocation;
+    double bestScore = -double.infinity;
 
     locationOverlapMap.forEach((locationKey, overlap) {
       if (overlap == maxOverlap) {
         final preBeacons = preProcessedData[locationKey]['beacons'] as Map<String, dynamic>;
+
+        final List<double> realtimeVector = [];
+        final List<double> preprocessedVector = [];
+
         double distance = 0;
 
         for (final macId in realtimeBeacons.keys) {
@@ -256,24 +467,72 @@ class Fingerprinting{
             final realMean = realtimeBeacons[macId]['mean'] as double;
             final preMean = preBeacons[macId]['mean'] as double;
 
+            realtimeVector.add(realMean);
+            preprocessedVector.add(preMean);
+
             distance += pow(preMean - realMean, 2);
           }
         }
 
         distance = sqrt(distance);
-        if (distance < minDistance) {
-          minDistance = distance;
-          nearestLocation = locationKey;
+        final cosineSimilarity = computeCosineSimilarity(realtimeVector, preprocessedVector);
+
+        // Combine into score
+        final similarityScore =
+            (cosineSimilarity * cosineWeight) + ((1 / (1 + distance)) * distanceWeight);
+
+        if (similarityScore > bestScore) {
+          bestScore = similarityScore;
+          bestLocation = locationKey;
         }
       }
     });
 
-    print("nearestPOint:${nearestLocation}");
+    print("Best location (raw): $bestLocation with score: $bestScore");
 
-    realTimeData.clear();
-    locationOverlapMap.clear();
-    minDistance=double.infinity;
-    return nearestLocation ?? 'unknown';
+    // === History logic with weighting and filtering ===
+    if (bestLocation != null && bestScore >= confidenceThreshold) {
+      // If a major change occurs, reset history
+      if (!predictionHistory.contains(bestLocation)) {
+        predictionHistory.clear();
+      }
+
+      predictionHistory.add(bestLocation!);
+      if (predictionHistory.length > historyLimit) {
+        predictionHistory.removeAt(0);
+      }
+
+      // Weighted voting: newer predictions carry more weight
+      final Map<String, double> weightedCounts = {};
+      for (int i = 0; i < predictionHistory.length; i++) {
+        final loc = predictionHistory[i];
+        final weight = (i + 1) / predictionHistory.length;
+        weightedCounts[loc] = (weightedCounts[loc] ?? 0) + weight;
+      }
+
+      final smoothed = weightedCounts.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+
+      print("smoothed values:${smoothed},${predictionHistory}");
+      return smoothed;
+    }
+
+    return bestLocation ?? 'unknown';
+  }
+
+
+
+  double computeCosineSimilarity(List<double> a, List<double> b) {
+    if (a.isEmpty || b.isEmpty || a.length != b.length) return 0;
+
+    double dotProduct = 0, normA = 0, normB = 0;
+
+    for (int i = 0; i < a.length; i++) {
+      dotProduct += a[i] * b[i];
+      normA += a[i] * a[i];
+      normB += b[i] * b[i];
+    }
+
+    return (normA == 0 || normB == 0) ? 0 : dotProduct / (sqrt(normA) * sqrt(normB));
   }
 
 
@@ -382,7 +641,7 @@ class Fingerprinting{
     timer?.cancel();
     bluetoothScanAndroidClass.stopScan();
     //cancel beacon stream here
-   realTimeData= computeRealtimeBeaconStats(data!.sensorFingerprint!);
+
 
     return true;
   }
@@ -409,6 +668,8 @@ class Fingerprinting{
         beacons.add(setBeacon(key, deviceNames[key], value.last,position,apibeaconmap![key]!.floor!.toString(),apibeaconmap![key]!.buildingID));
       }
     });
+
+    print("beaconvalues $beaconvalues");
     //call this line for every beacon scanned using a for loop
     // beacons.add(setBeacon(null,null,null));
 

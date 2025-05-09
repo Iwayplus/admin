@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:admin/fingerprinting/pannels/finger_printing_pannel_controller.dart';
 import 'package:admin/modes.dart';
 import 'package:admin/patchController.dart';
@@ -120,6 +122,7 @@ class _googleMapState extends State<googleMap> {
 
   Color buttonColor=Colors.red;
   String nearesPoint="";
+  Timer? _strtTimer;
   
   @override
   Widget build(BuildContext context) {
@@ -215,36 +218,39 @@ class _googleMapState extends State<googleMap> {
                 ),
                 SizedBox(height: 20,),
                 FloatingActionButton(
-                  backgroundColor: buttonColor,
+                  backgroundColor: Colors.green,
                   onPressed: () async {
-                  setState(() {
-                    buttonColor=Colors.green;
-                  });
                   fingerprinting.collectSensorDataEverySecond();
-                  await Future.delayed(Duration(seconds: 10));
-                  fingerprinting.stopCollectingRealData();
-                  setState(() {
-                    buttonColor=Colors.red;
-                  });
+
                 },child: Icon(Icons.account_balance),),
+                SizedBox(height: 20,),
+                FloatingActionButton(
+                  backgroundColor: Colors.red,
+                  onPressed: () async {
+                    fingerprinting.stopCollectingRealData();
+                    _strtTimer?.cancel();
+                  },child: Icon(Icons.account_balance),),
                 SizedBox(height: 25,),
                 FloatingActionButton(
                   backgroundColor: Colors.white,
                   onPressed: () async {
-                  nearesPoint=fingerprinting.findBestMatchingLocation();
-                  List<String> vals=nearesPoint.split(',');
-                  List<poly.Nodes> waypoints = await polygonController.extractWaypoints();
-                  for (var point in waypoints) {
-                    if(vals[0]==point.coordx.toString() && vals[1]==point.coordy.toString())
-                      {
-                        fingerprinting.addMarker(LatLng(point.lat!, point.lon!));
-                        return;
-                      }
-                  }
-                  setState(() {
-                    updateMarkers();
-                    nearesPoint;
-                  });
+            _strtTimer=Timer.periodic(Duration(seconds: 5), (_) async {
+              nearesPoint=fingerprinting.findBestMatchingLocationHybrid();
+              List<String> vals=nearesPoint.split(',');
+              List<poly.Nodes> waypoints = await polygonController.extractWaypoints();
+              for (var point in waypoints){
+                if(vals[0]==point.coordx.toString() && vals[1]==point.coordy.toString())
+                {
+                  fingerprinting.addMarker(LatLng(point.lat!, point.lon!));
+                  return;
+                }
+              }
+              setState(() {
+                updateMarkers();
+                nearesPoint;
+              });
+            });
+
                   },child: Icon(Icons.person),)
               ],
             ),
