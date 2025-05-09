@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:collection';
 import 'dart:math';
 
+import 'package:admin/HelperClass.dart';
 import 'package:flutter/services.dart';
 
 import '../APIMODELS/beaconData.dart';
@@ -67,28 +68,6 @@ class BluetoothScanAndroidClass{
   }
 
 
-  BluetoothDevice parseDeviceDetails(String response) {
-    final deviceRegex = RegExp(
-      r'Device Name: (.+?)\n.*?Address: (.+?)\n.*?RSSI: (-?\d+)',
-      dotAll: true,
-    );
-
-    final match = deviceRegex.firstMatch(response);
-
-    if (match != null) {
-      final deviceName = match.group(1) ?? 'Unknown';
-      final deviceAddress = match.group(2) ?? 'Unknown';
-      final deviceRssi = match.group(3) ?? '0';
-
-      return BluetoothDevice(
-        DeviceName: deviceName,
-        DeviceAddress: deviceAddress,
-        DeviceRssi: deviceRssi,
-      );
-    } else {
-      throw Exception('Invalid device details string');
-    }
-  }
 
 
   List<String> nearestBeaconList = [];
@@ -104,7 +83,7 @@ class BluetoothScanAndroidClass{
     String deviceMacId = "";
     // Start listening to the stream continuously
     _scanSubscription = eventChannel.receiveBroadcastStream().listen((deviceDetail) {
-      BluetoothDevice deviceDetails = parseDeviceDetails(deviceDetail);
+      BluetoothDevice deviceDetails = HelperClass().parseDeviceDetails(deviceDetail);
       if(apibeaconmap.containsKey(deviceDetails.DeviceName)) {
         deviceMacId = deviceDetails.DeviceName;
         deviceNames[deviceDetails.DeviceAddress] = deviceDetails.DeviceName;
