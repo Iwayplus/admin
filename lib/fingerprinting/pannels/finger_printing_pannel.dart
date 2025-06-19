@@ -166,12 +166,12 @@ class _pinLandmarkState extends State<pinLandmark> {
             bool success = await widget.fingerprinting.stopCollectingData();
             if(success){
               controller.success();
-              await Future.delayed(Duration(seconds: 10));
+              await Future.delayed(Duration(seconds:5));
               controller.reset();
               widget.fingerprinting.disableFingerprinting();
             }else{
               controller.failure();
-              await Future.delayed(Duration(seconds: 10));
+              await Future.delayed(Duration(seconds: 5));
               controller.reset();
               widget.fingerprinting.disableFingerprinting();
             }

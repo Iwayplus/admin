@@ -350,7 +350,6 @@ class PolygonController{
             bool isFarEnough = waypoints.every((existingNode) =>
             tools.calculateAerialDist(
                 existingNode.lat!, existingNode.lon!, node.lat!, node.lon!) >= 2);
-
             if (isFarEnough) {
               waypoints.add(node);
             }

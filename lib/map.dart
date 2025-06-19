@@ -207,8 +207,8 @@ class _googleMapState extends State<googleMap> {
                     SpeedDialChild(
                     child: Icon(Icons.bluetooth_connected),
                     backgroundColor: Colors.white,
-                    onTap: () {
-                      setState(() {
+                    onTap:(){
+                      setState((){
                         print("enabling");
                         fingerprinting.enableFingerprinting(polygonController,beaconController);
                       });
@@ -217,41 +217,40 @@ class _googleMapState extends State<googleMap> {
                   child: Icon(Icons.code_off),
                 ),
                 SizedBox(height: 20,),
-                FloatingActionButton(
-                  backgroundColor: Colors.green,
-                  onPressed: () async {
-                  fingerprinting.collectSensorDataEverySecond();
-
-                },child: Icon(Icons.account_balance),),
-                SizedBox(height: 20,),
-                FloatingActionButton(
-                  backgroundColor: Colors.red,
-                  onPressed: () async {
-                    fingerprinting.stopCollectingRealData();
-                    _strtTimer?.cancel();
-                  },child: Icon(Icons.account_balance),),
-                SizedBox(height: 25,),
-                FloatingActionButton(
-                  backgroundColor: Colors.white,
-                  onPressed: () async {
-            _strtTimer=Timer.periodic(Duration(seconds: 5), (_) async {
-              nearesPoint=fingerprinting.findBestMatchingLocationHybrid();
-              List<String> vals=nearesPoint.split(',');
-              List<poly.Nodes> waypoints = await polygonController.extractWaypoints();
-              for (var point in waypoints){
-                if(vals[0]==point.coordx.toString() && vals[1]==point.coordy.toString())
-                {
-                  fingerprinting.addMarker(LatLng(point.lat!, point.lon!));
-                  return;
-                }
-              }
-              setState(() {
-                updateMarkers();
-                nearesPoint;
-              });
-            });
-
-                  },child: Icon(Icons.person),)
+                // FloatingActionButton(
+                //   backgroundColor: Colors.green,
+                //   onPressed: ()async{
+                //   fingerprinting.collectSensorDataEverySecond();
+                // },child: Icon(Icons.account_balance),),
+                // SizedBox(height: 20,),
+                // FloatingActionButton(
+                //   backgroundColor: Colors.red,
+                //   onPressed: () async {
+                //     fingerprinting.stopCollectingRealData();
+                //     _strtTimer?.cancel();
+                //   },child: Icon(Icons.account_balance),),
+            //     SizedBox(height: 25,),
+            //     FloatingActionButton(
+            //       backgroundColor: Colors.white,
+            //       onPressed: () async {
+            // _strtTimer=Timer.periodic(Duration(seconds: 5), (_) async {
+            //   nearesPoint=fingerprinting.findBestMatchingLocationHybrid();
+            //   List<String> vals=nearesPoint.split(',');
+            //   List<poly.Nodes> waypoints = await polygonController.extractWaypoints();
+            //   for (var point in waypoints){
+            //     if(vals[0]==point.coordx.toString() && vals[1]==point.coordy.toString())
+            //     {
+            //       fingerprinting.addMarker(LatLng(point.lat!, point.lon!));
+            //       return;
+            //     }
+            //   }
+            //   setState(() {
+            //     updateMarkers();
+            //     nearesPoint;
+            //   });
+            // });
+            //
+            //       },child: Icon(Icons.person),)
               ],
             ),
           ),

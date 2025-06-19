@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:admin/BluetoothManager/BLEManager.dart';
 import 'package:admin/HelperClass.dart';
 import 'package:admin/api/buildingAllApi.dart';
 import 'package:flutter/cupertino.dart';
@@ -58,19 +59,14 @@ class Fingerprinting{
   Fingerprinting() {
     FingerPrintingPannel = fingerprintingPannel(fingerprinting: this);
   }
-
-
   set updateMarkers(Function value) {
     _updateMarkers = value;
   }
-
   set context(BuildContext value) {
     _context = value;
   }
-
   Map<String,dynamic> preProcessedData={};
   Map<String,dynamic> realTimeData={};
-
   Future<void> enableFingerprinting(PolygonController polygonController, BeaconController beaconController) async {
     print("inside enabling");
     _dotMarkers.clear();
@@ -102,11 +98,9 @@ class Fingerprinting{
     _z = 0.0;
     theta = 0.0;
     _lightValue = 0;
-
     // Cancel any active subscriptions and reset
     _Lightsubscription?.cancel();
     _Lightsubscription = null;
-
     // Cancel the timer if active
     timer?.cancel();
     timer = null;
@@ -120,7 +114,6 @@ class Fingerprinting{
     if(fingerPrintData != null && fingerPrintData.fingerPrintData["${point.coordx},${point.coordy},$floor"] != null){
       svgIcon = await _svgToBitmapDescriptor('assets/exitservice.svg', Size(40, 40));
     }
-
     _dotMarkers.add(
       Marker(
           markerId: MarkerId('${point.lat!},${point.lon!}'),
@@ -136,10 +129,9 @@ class Fingerprinting{
     );
     _updateMarkers();
   }
-
-
-
-
+  void clearMarkers(){
+    _Markers.clear();
+  }
 
   Map<String, dynamic> computeBeaconStats(Map<String, List<fp.SensorData>> locationSensorData) {
     final result = <String, dynamic>{};
@@ -496,12 +488,10 @@ class Fingerprinting{
       if (!predictionHistory.contains(bestLocation)) {
         predictionHistory.clear();
       }
-
       predictionHistory.add(bestLocation!);
       if (predictionHistory.length > historyLimit) {
         predictionHistory.removeAt(0);
       }
-
       // Weighted voting: newer predictions carry more weight
       final Map<String, double> weightedCounts = {};
       for (int i = 0; i < predictionHistory.length; i++) {
@@ -509,12 +499,13 @@ class Fingerprinting{
         final weight = (i + 1) / predictionHistory.length;
         weightedCounts[loc] = (weightedCounts[loc] ?? 0) + weight;
       }
-
       final smoothed = weightedCounts.entries.reduce((a, b) => a.value > b.value ? a : b).key;
-
-      print("smoothed values:${smoothed},${predictionHistory}");
+      print("smoothed values:${smoothed},${predictionHistory} ${data!.sensorFingerprint!}");
       return smoothed;
     }
+    realTimeData.clear();
+    realtimeBeacons.clear();
+    data!.sensorFingerprint!.clear();
 
     return bestLocation ?? 'unknown';
   }
@@ -573,16 +564,16 @@ class Fingerprinting{
     return _dotMarkers.union(_Markers);
   }
 
+  BLEManager bleManager = BLEManager();
 
   Future<void> collectSensorDataEverySecond() async {
     if(apibeaconmap != null){
-      bluetoothScanAndroidClass.listenToScanUpdates(apibeaconmap!);
+      bleManager.startScanning(bufferSize: 2, streamFrequency: 1,duration: null);
+      // bluetoothScanAndroidClass.listenToScanUpdates(apibeaconmap!);
     }else{
       HelperClass.showToast("Getting beacon data!!");
     }
-
     _startListeningToScannedResults();
-
     data = Data(position: "${userPosition?.coordx},${userPosition?.coordy},$floor");
 
     gps.startGpsUpdates();
@@ -604,10 +595,41 @@ class Fingerprinting{
     _Lightsubscription = _light.lightSensorStream.listen((value){
       _lightValue = value;
     });
+    List<Beacon> beacons = [];
+
+    bleManager.bufferedDeviceStream.listen((data){
+      beacons.clear();
+      Map<String, List<int>> beaconWithRssi = {};
+      beaconWithRssi.clear();
+      data.forEach((deviceName,deviceRssi){
+        List<int> rssiList = [];
+        deviceRssi.forEach((key,value){
+          rssiList.add(int.parse(value));
+        });
+        beaconWithRssi[deviceName] = rssiList;
+      });
+      Map<String, List<int>> beaconvalues = beaconWithRssi;
+      // Map<String, double> averageValue = await bluetoothScanAndroidClass.getDeviceWithAverage();
+      // Map<String, String> deviceNames = await bluetoothScanAndroidClass.getDeviceName();
+      beaconvalues.forEach((key,value){
+        if(apibeaconmap != null && apibeaconmap![key] != null){
+          print("values i got${key} ${value.last}");
+          Position position = Position(x:(apibeaconmap![key]!.coordinateX??apibeaconmap![key]!.doorX!).toDouble(),y:(apibeaconmap![key]!.coordinateY??apibeaconmap![key]!.doorY!).toDouble());
+          beacons.add(setBeacon(key, key, value.last,position,apibeaconmap![key]!.floor!.toString(),apibeaconmap![key]!.buildingID));
+        }
+      });
+
+      // print("beaconvalues $beaconvalues");
+      // //call this line for every beacon scanned using a for loop
+      // // beacons.add(setBeacon(null,null,null));
+      //
+      // return beacons;
+    });
+
 
     timer = Timer.periodic(Duration(seconds: 1), (timer) async {
-      List<Beacon> beacons = await fetchBeaconData();
-      print(beacons);
+      // List<Beacon> beacons = await fetchBeaconData();
+      print("beaconsvalues $beacons");
       var gpsData = await fetchGpsData();
       var wifi = await fetchWifiData();
       var magnetometerData = await fetchMagnetometerData();
@@ -633,6 +655,7 @@ class Fingerprinting{
   Future<bool> stopCollectingData() async {
     timer?.cancel();
     bluetoothScanAndroidClass.stopScan();
+    BLEManager().stopScanning();
     //cancel beacon stream here
     return await fingerPrintingApi().Finger_Printing_API(buildingAllApi.selectedBuildingID, data!);
   }
@@ -641,7 +664,6 @@ class Fingerprinting{
     timer?.cancel();
     bluetoothScanAndroidClass.stopScan();
     //cancel beacon stream here
-
 
     return true;
   }
@@ -657,7 +679,9 @@ class Fingerprinting{
   }
 
   Future<List<Beacon>> fetchBeaconData() async {
-    Map<String, List<int>> beaconvalues = await bluetoothScanAndroidClass.getDeviceWithRssi();
+    Map<String, List<int>> beaconWithRssi = {};
+
+    Map<String, List<int>> beaconvalues = beaconWithRssi;
     Map<String, double> averageValue = await bluetoothScanAndroidClass.getDeviceWithAverage();
     Map<String, String> deviceNames = await bluetoothScanAndroidClass.getDeviceName();
 
@@ -665,7 +689,7 @@ class Fingerprinting{
     beaconvalues.forEach((key,value){
       if(apibeaconmap != null && apibeaconmap![key] != null){
         Position position = Position(x:(apibeaconmap![key]!.coordinateX??apibeaconmap![key]!.doorX!).toDouble(),y:(apibeaconmap![key]!.coordinateY??apibeaconmap![key]!.doorY!).toDouble());
-        beacons.add(setBeacon(key, deviceNames[key], value.last,position,apibeaconmap![key]!.floor!.toString(),apibeaconmap![key]!.buildingID));
+        beacons.add(setBeacon(key, key, value.last,position,apibeaconmap![key]!.floor!.toString(),apibeaconmap![key]!.buildingID));
       }
     });
 

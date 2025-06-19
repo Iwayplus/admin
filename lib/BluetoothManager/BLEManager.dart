@@ -55,7 +55,7 @@ class BLEManager{
     if(kDebugMode) print("startBufferEmission");
     _bufferEmitTimer?.cancel(); // cancel previous if any
     _bufferEmitTimer = Timer.periodic(Duration(seconds: bufferSizeInSeconds), (_) {
-      final dataToSend = Map<String, double>.from(weightAvg);
+      final dataToSend = Map<String, Map<DateTime,String>>.from(buffer);
       _bufferedDeviceStreamController.add(dataToSend);
     });
   }
@@ -112,9 +112,11 @@ class BLEManager{
   void trimBuffer(){
     trimBufferTimer = Timer.periodic(Duration(seconds: 1), (timer)  {
       if (kDebugMode) print("startCleanupTimer");
+      // print("buffer-- $buffer");
       buffer.forEach((beaconName,beaconRespVal){
         final toRemove = <DateTime>[];
         beaconRespVal.forEach((beaconDateTime, beaconRSSI){
+          // print("DateTime.now().difference(beaconDateTime) ${DateTime.now().difference(beaconDateTime)}");
           if(DateTime.now().difference(beaconDateTime) > Duration(seconds: 5)){
             toRemove.add(beaconDateTime);
           }
@@ -132,11 +134,14 @@ class BLEManager{
       for (final key in keysToRemove) {
         buffer.remove(key);
       }
+      print("buffer2-- $buffer");
       doCalculationForNearestBeacon();
     });
   }
 
   void doCalculationForNearestBeacon(){
+    print("buffercheck $buffer");
+    weightAvg.clear();
     buffer.forEach((beaconName, beaconResponseValues){
       double totalWeight = 0.0;
       int divideBySize = 0;

@@ -9,11 +9,10 @@ import 'RefreshTokenAPI.dart';
 class PolyLineApi {
   final String baseUrl = kDebugMode? "https://dev.iwayplus.in/secured/polyline" : "https://maps.iwayplus.in/secured/polyline";
   String accessToken = "";
-
   Future<polylinedata> fetchPolyData(String id, {bool outdoor = false}) async {
+    print("building id:${id}");
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
     accessToken = await prefs.getMap("signin")!["accessToken"];
-
     final Map<String, dynamic> data = {
       "id": id,
       "outdoor": outdoor
