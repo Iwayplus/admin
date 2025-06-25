@@ -17,6 +17,7 @@ import 'package:wifi_scan/wifi_scan.dart';
 import '../APIMODELS/Building.dart';
 import '../APIMODELS/FingerPrintData.dart' as fp;
 import '../APIMODELS/beaconData.dart';
+import '../APIMODELS/patchDataModel.dart';
 import '../APIMODELS/polylinedata.dart' as poly;
 import '../Bluetooth/BluetoothScanAndroidClass.dart';
 import '../GPS.dart';
@@ -25,6 +26,9 @@ import '../api/beaconapi.dart';
 import '../api/fingerPrintGet.dart';
 import '../api/fingerPrintingApi.dart';
 import '../beaconController.dart';
+import '../navigationTools.dart';
+import '../patchController.dart';
+import '../point2d.dart';
 import 'SensorFingerprint.dart';
 import 'pannels/finger_printing_pannel_controller.dart';
 import 'dart:ui' as ui;
@@ -67,21 +71,28 @@ class Fingerprinting{
   }
   Map<String,dynamic> preProcessedData={};
   Map<String,dynamic> realTimeData={};
-  Future<void> enableFingerprinting(PolygonController polygonController, BeaconController beaconController) async {
+  Future<void> enableFingerprinting(PatchController patchController, PolygonController polygonController, BeaconController beaconController) async {
     print("inside enabling");
     _dotMarkers.clear();
     floor = polygonController.floor;
     apibeaconmap = beaconController.apibeaconmap;
-    var fingerPrintData = await fingerPrintingGetApi().Finger_Printing_GET_API(buildingAllApi.selectedBuildingID);
-    print("fingerprint data:${fingerPrintData!.fingerPrintData}");
-    preProcessedData=computeBeaconStats(fingerPrintData!.fingerPrintData);
+    print("floor selected:${floor}");
+    var fingerPrintData = await fingerPrintingGetApi().Finger_Printing_GET_API(buildingAllApi.selectedBuildingID,floor.toString());
+    // print("fingerprint data:${fingerPrintData!.fingerPrintData}");
+    // preProcessedData=computeBeaconStats(fingerPrintData!.fingerPrintData);
+    Map<String,Set<Point2D>> interpolatedWaypoints=await polygonController.fetchWayPoints();
     List<poly.Nodes> waypoints = await polygonController.extractWaypoints();
-    for (var point in waypoints) {
-      await addDotMarker(point, fingerPrintData);
-    }
+    interpolatedWaypoints.forEach((interfloor, points) async {
+      if(interfloor==floor.toString()){
+        await addDotMarkerInterpolated(points, patchController.data, fingerPrintData);
+      }
+    });
+    // for (var point in waypoints) {
+    //   await addDotMarker(point, patchController.data, fingerPrintData);
+    // }
+
     print("enabled");
   }
-
   void disableFingerprinting(){
     _dotMarkers.clear();
     _Markers.clear();
@@ -108,104 +119,152 @@ class Fingerprinting{
     _updateMarkers();
   }
 
-  Future<void> addDotMarker(poly.Nodes point, fp.FingerPrintData? fingerPrintData) async {
+  Future<void> addDotMarker(poly.Nodes point, patchDataModel? patchData, fp.FingerPrintData? fingerPrintData) async {
     print("dotmarker");
     var svgIcon = await _svgToBitmapDescriptor('assets/dot.svg', Size(40, 40));
-    if(fingerPrintData != null && fingerPrintData.fingerPrintData["${point.coordx},${point.coordy},$floor"] != null){
-      svgIcon = await _svgToBitmapDescriptor('assets/exitservice.svg', Size(40, 40));
+    if (fingerPrintData!=null) {
+      // Coordinates to match
+      String targetLocation = "${point.coordx},${point.coordy},$floor";
+      // Check if any entry's location matches
+      bool matchFound = fingerPrintData.data!.any(
+            (entry) => entry.location == targetLocation,
+      );
+      if (matchFound) {
+        svgIcon = await _svgToBitmapDescriptor('assets/exitservice.svg', Size(40, 40));
+      }
     }
     _dotMarkers.add(
       Marker(
-          markerId: MarkerId('${point.lat!},${point.lon!}'),
-          position: LatLng(point.lat!, point.lon!),
-          icon: svgIcon,
-          onTap:(){
-            _Markers.clear();
-            FingerPrintingPannel.showPanel();
-            userPosition = point;
-            addMarker(LatLng(point.lat!, point.lon!));
-          }
+        markerId: MarkerId('${point.lat!},${point.lon!}'),
+        position: LatLng(point.lat!, point.lon!),
+        icon: svgIcon,
+        onTap: () {
+          _Markers.clear();
+          FingerPrintingPannel.showPanel();
+          userPosition = point;
+          addMarker(LatLng(point.lat!, point.lon!));
+        },
       ),
     );
     _updateMarkers();
   }
+
+  Future<void> addDotMarkerInterpolated(Set<Point2D> interPolatedPoints, patchDataModel? patchData, fp.FingerPrintData? fingerPrintData) async {
+    print("dotmarker");
+
+    List<LatLng> addedMarkerPositions = [];
+    for(Point2D point in interPolatedPoints){
+      var svgIcon = await _svgToBitmapDescriptor('assets/dot.svg', Size(40, 40));
+      if(fingerPrintData!=null){
+        String targetLocation = "${point.x},${point.y},$floor";
+        bool matchFound = fingerPrintData.data!.any(
+              (entry) => entry.location == targetLocation,
+        );
+        if (matchFound) {
+          svgIcon = await _svgToBitmapDescriptor('assets/exitservice.svg', Size(40, 40));
+        }
+      }
+      List<double> value = tools.localtoglobal(point.x, point.y, patchData);
+      LatLng currentLatLng = LatLng(value[0], value[1]);
+      poly.Nodes nodePoint=poly.Nodes(coordx: point.x,coordy:point.y,lat: value[0],lon: value[1]);
+      //obstacles avoidance.
+      bool isFarEnough = addedMarkerPositions.every(
+            (existing) => tools.calculateAerialDist(existing.latitude,existing.longitude,currentLatLng.latitude,currentLatLng.longitude) >= 1.2,);
+      if (!isFarEnough) continue;
+      _dotMarkers.add(
+        Marker(
+          markerId: MarkerId('${point.x!},${point.y!}'),
+          position: currentLatLng,
+          icon: svgIcon,
+          onTap: () {
+            _Markers.clear();
+            FingerPrintingPannel.showPanel();
+             userPosition = nodePoint;
+            addMarker(LatLng(value[0], value[1]));
+          },
+        ),
+      );
+      addedMarkerPositions.add(currentLatLng);
+    }
+    _updateMarkers();
+  }
+
   void clearMarkers(){
     _Markers.clear();
   }
-
-  Map<String, dynamic> computeBeaconStats(Map<String, List<fp.SensorData>> locationSensorData) {
-    final result = <String, dynamic>{};
-
-    locationSensorData.forEach((locationKey, sensorDataList) {
-      final beaconMap = <String, List<int>>{};
-      final weakOutlierMap = <String, List<Map<String, dynamic>>>{};
-      final deviationOutlierMap = <String, List<Map<String, dynamic>>>{};
-
-      // Step 1: Collect all valid RSSI readings
-      for (var data in sensorDataList) {
-        for (var beacon in data.beacons ?? []) {
-          final macId = beacon.beaconMacId;
-          final rssi = beacon.beaconRssi;
-
-          if (macId == null || rssi == null) continue;
-
-          if (rssi >= -95) {
-            beaconMap.putIfAbsent(macId, () => []).add(rssi);
-          } else {
-            weakOutlierMap.putIfAbsent(macId, () => []).add({
-              'value': rssi,
-              'outlierType': 'weak_signal',
-            });
-          }
-        }
-      }
-
-      // Step 2: Compute stats + deviation outliers
-      final beaconStats = beaconMap.map((macId, rssiList) {
-        final mean = rssiList.reduce((a, b) => a + b) / rssiList.length;
-        final variance = rssiList.fold(0.0, (sum, val) => sum + pow(val - mean, 2)) / rssiList.length;
-        final stdDev = sqrt(variance);
-
-        final cleanedRssiList = <int>[];
-        for (var rssi in rssiList) {
-          if (stdDev == 0 || (rssi >= mean - 2 * stdDev && rssi <= mean + 2 * stdDev)) {
-            cleanedRssiList.add(rssi);
-          } else {
-            deviationOutlierMap.putIfAbsent(macId, () => []).add({
-              'value': rssi,
-              'outlierType': 'deviation_outlier',
-            });
-          }
-        }
-
-        // Recalculate mean and std dev after removing deviation outliers
-        final finalMean = cleanedRssiList.isNotEmpty
-            ? cleanedRssiList.reduce((a, b) => a + b) / cleanedRssiList.length
-            : 0.0;
-        final finalVariance = cleanedRssiList.isNotEmpty
-            ? cleanedRssiList.fold(0.0, (sum, val) => sum + pow(val - finalMean, 2)) / cleanedRssiList.length
-            : 0.0;
-        final finalStdDev = sqrt(finalVariance);
-
-        final allOutliers = [
-          ...?weakOutlierMap[macId],
-          ...?deviationOutlierMap[macId],
-        ];
-
-        return MapEntry(macId, {
-          'mean': finalMean,
-          'stdDev': finalStdDev,
-          'outliers': allOutliers,
-        });
-      });
-
-      result[locationKey] = {
-        'beacons': beaconStats,
-      };
-    });
-
-    return result;
-  }
+  // Map<String, dynamic> computeBeaconStats(Map<String, List<fp.SensorData>> locationSensorData) {
+  //   final result = <String, dynamic>{};
+  //
+  //   locationSensorData.forEach((locationKey, sensorDataList) {
+  //     final beaconMap = <String, List<int>>{};
+  //     final weakOutlierMap = <String, List<Map<String, dynamic>>>{};
+  //     final deviationOutlierMap = <String, List<Map<String, dynamic>>>{};
+  //
+  //     // Step 1: Collect all valid RSSI readings
+  //     for (var data in sensorDataList) {
+  //       for (var beacon in data.beacons ?? []) {
+  //         final macId = beacon.beaconMacId;
+  //         final rssi = beacon.beaconRssi;
+  //
+  //         if (macId == null || rssi == null) continue;
+  //
+  //         if (rssi >= -95) {
+  //           beaconMap.putIfAbsent(macId, () => []).add(rssi);
+  //         } else {
+  //           weakOutlierMap.putIfAbsent(macId, () => []).add({
+  //             'value': rssi,
+  //             'outlierType': 'weak_signal',
+  //           });
+  //         }
+  //       }
+  //     }
+  //
+  //     // Step 2: Compute stats + deviation outliers
+  //     final beaconStats = beaconMap.map((macId, rssiList) {
+  //       final mean = rssiList.reduce((a, b) => a + b) / rssiList.length;
+  //       final variance = rssiList.fold(0.0, (sum, val) => sum + pow(val - mean, 2)) / rssiList.length;
+  //       final stdDev = sqrt(variance);
+  //
+  //       final cleanedRssiList = <int>[];
+  //       for (var rssi in rssiList) {
+  //         if (stdDev == 0 || (rssi >= mean - 2 * stdDev && rssi <= mean + 2 * stdDev)) {
+  //           cleanedRssiList.add(rssi);
+  //         } else {
+  //           deviationOutlierMap.putIfAbsent(macId, () => []).add({
+  //             'value': rssi,
+  //             'outlierType': 'deviation_outlier',
+  //           });
+  //         }
+  //       }
+  //
+  //       // Recalculate mean and std dev after removing deviation outliers
+  //       final finalMean = cleanedRssiList.isNotEmpty
+  //           ? cleanedRssiList.reduce((a, b) => a + b) / cleanedRssiList.length
+  //           : 0.0;
+  //       final finalVariance = cleanedRssiList.isNotEmpty
+  //           ? cleanedRssiList.fold(0.0, (sum, val) => sum + pow(val - finalMean, 2)) / cleanedRssiList.length
+  //           : 0.0;
+  //       final finalStdDev = sqrt(finalVariance);
+  //
+  //       final allOutliers = [
+  //         ...?weakOutlierMap[macId],
+  //         ...?deviationOutlierMap[macId],
+  //       ];
+  //
+  //       return MapEntry(macId, {
+  //         'mean': finalMean,
+  //         'stdDev': finalStdDev,
+  //         'outliers': allOutliers,
+  //       });
+  //     });
+  //
+  //     result[locationKey] = {
+  //       'beacons': beaconStats,
+  //     };
+  //   });
+  //
+  //   return result;
+  // }
 
 
   Map<String, dynamic> computeRealtimeBeaconStats(List<SensorFingerprint> realtimeSensorData) {
@@ -567,17 +626,17 @@ class Fingerprinting{
   BLEManager bleManager = BLEManager();
 
   Future<void> collectSensorDataEverySecond() async {
-    if(apibeaconmap != null){
-      bleManager.startScanning(bufferSize: 2, streamFrequency: 1,duration: null);
-      // bluetoothScanAndroidClass.listenToScanUpdates(apibeaconmap!);
-    }else{
+    if (apibeaconmap != null) {
+      bleManager.startScanning(bufferSize: 2, streamFrequency: 1, duration: null);
+    } else {
       HelperClass.showToast("Getting beacon data!!");
     }
+
     _startListeningToScannedResults();
     data = Data(position: "${userPosition?.coordx},${userPosition?.coordy},$floor");
 
     gps.startGpsUpdates();
-    gps.positionStream.listen((position){
+    gps.positionStream.listen((position) {
       gpsPosition = position;
     });
 
@@ -587,49 +646,57 @@ class Fingerprinting{
       _z = event.z;
     });
 
-
-    FlutterCompass.events!.listen((event){
+    FlutterCompass.events!.listen((event) {
       theta = event.heading!;
     });
 
-    _Lightsubscription = _light.lightSensorStream.listen((value){
+    _Lightsubscription = _light.lightSensorStream.listen((value) {
       _lightValue = value;
     });
-    List<Beacon> beacons = [];
 
-    bleManager.bufferedDeviceStream.listen((data){
-      beacons.clear();
-      Map<String, List<int>> beaconWithRssi = {};
-      beaconWithRssi.clear();
-      data.forEach((deviceName,deviceRssi){
-        List<int> rssiList = [];
-        deviceRssi.forEach((key,value){
-          rssiList.add(int.parse(value));
-        });
-        beaconWithRssi[deviceName] = rssiList;
-      });
-      Map<String, List<int>> beaconvalues = beaconWithRssi;
-      // Map<String, double> averageValue = await bluetoothScanAndroidClass.getDeviceWithAverage();
-      // Map<String, String> deviceNames = await bluetoothScanAndroidClass.getDeviceName();
-      beaconvalues.forEach((key,value){
-        if(apibeaconmap != null && apibeaconmap![key] != null){
-          print("values i got${key} ${value.last}");
-          Position position = Position(x:(apibeaconmap![key]!.coordinateX??apibeaconmap![key]!.doorX!).toDouble(),y:(apibeaconmap![key]!.coordinateY??apibeaconmap![key]!.doorY!).toDouble());
-          beacons.add(setBeacon(key, key, value.last,position,apibeaconmap![key]!.floor!.toString(),apibeaconmap![key]!.buildingID));
+    /// Buffer for collecting multiple RSSI values per beacon per second
+    Map<String, List<int>> _beaconRssiBuffer = {};
+
+    /// Bluetooth beacon stream listener
+    bleManager.bufferedDeviceStream.listen((data) {
+      data.forEach((deviceName, deviceRssi) {
+        final rssiList = deviceRssi.values
+            .map((val) => int.tryParse(val.toString()))
+            .whereType<int>() // filters out nulls
+            .toList();
+        if (!_beaconRssiBuffer.containsKey(deviceName)) {
+          _beaconRssiBuffer[deviceName] = [];
         }
-      });
+        _beaconRssiBuffer[deviceName]!.addAll(rssiList);
 
-      // print("beaconvalues $beaconvalues");
-      // //call this line for every beacon scanned using a for loop
-      // // beacons.add(setBeacon(null,null,null));
-      //
-      // return beacons;
+        print("RSSI collected: $deviceName => ${_beaconRssiBuffer[deviceName]}");
+      });
     });
 
+    /// Timer to collect and flush data every second
+    List<Beacon> beacons = []; // Persistent list outside the timer
 
     timer = Timer.periodic(Duration(seconds: 1), (timer) async {
-      // List<Beacon> beacons = await fetchBeaconData();
-      print("beaconsvalues $beacons");
+      _beaconRssiBuffer.forEach((key, rssiList) {
+        print("yfyuvy${apibeaconmap != null && apibeaconmap![key] != null && rssiList.isNotEmpty}");
+        if (apibeaconmap != null && apibeaconmap![key] != null && rssiList.isNotEmpty) {
+          final existingIndex = beacons.indexWhere((b) => b.beaconMacId == key);
+          print("existingIndex ${existingIndex} for ${key}");
+          if (existingIndex != -1) {
+            // Beacon already exists — append RSSI values
+            beacons[existingIndex].beaconRssi.addAll(rssiList);
+          } else {
+            beacons.add(Beacon(
+              beaconMacId: key,
+              beaconRssi: [...rssiList], // clone to avoid future mutation
+            ));
+          }
+        }
+      });
+      _beaconRssiBuffer.clear(); // Clear for next second
+
+      print("Accumulated Beacons: ${beacons.map((b) => "${b.beaconMacId}: ${b.beaconRssi.length} RSSIs").toList()}");
+
       var gpsData = await fetchGpsData();
       var wifi = await fetchWifiData();
       var magnetometerData = await fetchMagnetometerData();
@@ -643,14 +710,17 @@ class Fingerprinting{
         magnetometerData: magnetometerData,
         accelerometerData: accelerometerData,
         lux: lux,
-        timeStamp: dateFormat.format(DateTime.now().toUtc())
+        timeStamp: dateFormat.format(DateTime.now().toUtc()),
       );
+
       data?.sensorFingerprint ??= [];
       data?.sensorFingerprint?.add(fingerprint);
+
       print("data.toJson() ${data?.toJson()}");
     });
 
   }
+
 
   Future<bool> stopCollectingData() async {
     timer?.cancel();
@@ -689,7 +759,7 @@ class Fingerprinting{
     beaconvalues.forEach((key,value){
       if(apibeaconmap != null && apibeaconmap![key] != null){
         Position position = Position(x:(apibeaconmap![key]!.coordinateX??apibeaconmap![key]!.doorX!).toDouble(),y:(apibeaconmap![key]!.coordinateY??apibeaconmap![key]!.doorY!).toDouble());
-        beacons.add(setBeacon(key, key, value.last,position,apibeaconmap![key]!.floor!.toString(),apibeaconmap![key]!.buildingID));
+        beacons.add(setBeacon(key,value));
       }
     });
 
@@ -700,11 +770,14 @@ class Fingerprinting{
     return beacons;
   }
 
-  Beacon setBeacon(String? beaconMacId, String? beaconName, int? beaconRssi, Position? beaconPosition,   String? beaconFloor,   String? buildingId){
+  Beacon setBeacon(String macId,List<int> rssi) {
     return Beacon(
-        beaconMacId: beaconMacId, beaconName: beaconName, beaconRssi: beaconRssi, beaconPosition: beaconPosition,beaconFloor:beaconFloor,buildingId:buildingId
+      beaconMacId: macId,
+
+      beaconRssi: rssi,
     );
   }
+
 
   Future<GpsData> fetchGpsData() async {
     if(gpsPosition == null){

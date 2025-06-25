@@ -1,12 +1,16 @@
 import 'dart:ui';
 
+import 'package:admin/point2d.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmap;
 
+import 'APIMODELS/patchDataModel.dart';
 import 'APIMODELS/polylinedata.dart';
+import 'APIMODELS/waypoint.dart';
 import 'api/PolyLineApi.dart';
 import 'api/buildingAllApi.dart';
+import 'api/waypoint.dart';
 import 'navigationTools.dart';
 
 class PolygonController{
@@ -15,6 +19,7 @@ class PolygonController{
   int _floor = 0;
   List<int> numberOfFloors = [0];
   polylinedata? data;
+  static Map<String,List<PathModel>> waypoint = {};
 
   Set<gmap.Polyline> get polylines => _polylines;
 
@@ -35,7 +40,7 @@ class PolygonController{
     _floor = value;
   }
 
-  Future<void> renderRooms(int fl) async {
+  Future<void> renderRooms(int fl, patchDataModel? patchData) async {
     data ??= await PolyLineApi().fetchPolyData(buildingAllApi.selectedBuildingID);
     polygons.clear();
     polylines.clear();
@@ -55,7 +60,8 @@ class PolygonController{
             List<LatLng> coordinates = [];
 
             for (Nodes node in polyArray.nodes!) {
-              coordinates.add(LatLng(node.lat!,node.lon!));
+              List<double> convertedValue = tools.localtoglobal(node.coordx!, node.coordy!, patchData);
+              coordinates.add(LatLng(convertedValue[0], convertedValue[1]));
             }
 
 
@@ -333,13 +339,20 @@ class PolygonController{
           }
         }
       }
-
-
     return;
+  }
+
+  Future<Map<String, Set<Point2D>>> fetchWayPoints() async {
+    var waypointData = await waypointapi().fetchwaypoint(buildingAllApi.selectedBuildingID);
+    PolygonController.waypoint=waypointData as Map<String, List<PathModel>>;
+    print("waypoint:${PolygonController.waypoint['0']![0].pathNetwork}");
+    print("generateSampledPoints:${Point2D.generateSampledPointsFromWaypointGraph(PolygonController.waypoint)}");
+    return Point2D.generateSampledPointsFromWaypointGraph(PolygonController.waypoint);
   }
 
   Future<List<Nodes>> extractWaypoints() async {
     print("called");
+    // PathModel model = waypoint[buildingAllApi.outdoorID]!.firstWhere((e) => e.floor == 0);
     data ??= await PolyLineApi().fetchPolyData(buildingAllApi.selectedBuildingID);
     List<Nodes> waypoints = [];
     for (var floors in data!.polyline!.floors!) {

@@ -5,18 +5,14 @@ import '../APIMODELS/FingerPrintData.dart';
 import '../fingerprinting/SensorFingerprint.dart';
 import '../SharedPreferenceHelper.dart';
 import 'RefreshTokenAPI.dart';
-
-
 class fingerPrintingGetApi {
-  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/secured/get-fingerprinting-data/" : "https://maps.iwayplus.in/secured/get-fingerprinting-data/";
+  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/admin/get-fingerprints/" : "https://dev.iwayplus.in/admin/get-fingerprints/";
   String accessToken = "";
-
-  Future<FingerPrintData?> Finger_Printing_GET_API(String building_ID) async {
+  Future<FingerPrintData?> Finger_Printing_GET_API(String building_ID,String floor) async {
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
     accessToken = await prefs.getMap("signin")!["accessToken"];
-
     final response = await http.get(
-      Uri.parse(baseUrl+building_ID),
+      Uri.parse(baseUrl+building_ID+"/${floor}"),
       headers: {
         'Content-Type': 'application/json',
         'x-access-token': accessToken
@@ -33,7 +29,7 @@ class fingerPrintingGetApi {
     }else if(response.statusCode == 403){
       String newAccessToken = await RefreshTokenAPI.refresh();
       accessToken = newAccessToken;
-      return Finger_Printing_GET_API(building_ID);
+      return Finger_Printing_GET_API(building_ID,floor);
     } else {
       print(response.body);
       throw Exception('Failed to load Finger_Printing_GET_API data');

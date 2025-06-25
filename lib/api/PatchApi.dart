@@ -9,7 +9,7 @@ import 'RefreshTokenAPI.dart';
 
 class patchAPI {
 
-  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/secured/patch/get" : "https://maps.iwayplus.in/secured/patch/get";
+  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/secured/patch/get" : "https://dev.iwayplus.in/secured/patch/get";
   String accessToken = "";
 
   Future<patchDataModel> fetchPatchData(String id) async {

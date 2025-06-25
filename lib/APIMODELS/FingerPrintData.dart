@@ -1,165 +1,182 @@
-import '../fingerprinting/SensorFingerprint.dart';
-
 class FingerPrintData {
-  String id;
-  String buildingID;
-  Map<String, List<SensorData>> fingerPrintData;
-  int version;
+  String? message;
+  List<Data>? data;
 
-  FingerPrintData({
-    required this.id,
-    required this.buildingID,
-    required this.fingerPrintData,
-    required this.version,
-  });
+  FingerPrintData({this.message, this.data});
 
-  factory FingerPrintData.fromJson(Map<String, dynamic> json) {
-
-    return FingerPrintData(
-      id: json['_id'],
-      buildingID: json['building_ID'],
-      fingerPrintData: (json['fingerPrintData'] as Map<String, dynamic>).map(
-            (key, value) => MapEntry(
-          key,
-          (value as List).map((e) => SensorData.fromJson(e)).toList(),
-        ),
-      ),
-      version: json['__v'],
-    );
+  FingerPrintData.fromJson(Map<String, dynamic> json) {
+    message = json['message'];
+    if (json['data'] != null) {
+      data = <Data>[];
+      json['data'].forEach((v) {
+        data!.add(new Data.fromJson(v));
+      });
+    }
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      '_id': id,
-      'building_ID': buildingID,
-      'fingerPrintData': fingerPrintData.map((key, value) => MapEntry(
-        key,
-        value.map((e) => e.toJson()).toList(),
-      )),
-      '__v': version,
-    };
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['message'] = this.message;
+    if (this.data != null) {
+      data['data'] = this.data!.map((v) => v.toJson()).toList();
+    }
+    return data;
   }
 }
 
-class SensorData {
-  List<Beacon>? beacons;
-  GPSData gpsData;
-  MagnetometerData magnetometerData;
-  AccelerometerData accelerometerData;
-  int lux;
-  String timeStamp;
+class Data {
+  String? sId;
+  String? buildingID;
+  String? location;
+  List<Data>? data;
+  String? createdAt;
+  String? updatedAt;
+  int? iV;
 
-  SensorData({
-    this.beacons,
-    required this.gpsData,
-    required this.magnetometerData,
-    required this.accelerometerData,
-    required this.lux,
-    required this.timeStamp,
-  });
+  Data(
+      {this.sId,
+        this.buildingID,
+        this.location,
+        this.data,
+        this.createdAt,
+        this.updatedAt,
+        this.iV});
 
-  factory SensorData.fromJson(Map<String, dynamic> json) {
-    return SensorData(
-      beacons: json['beacons'] != null
-          ? (json['beacons'] as List)
-          .map((beaconJson) => Beacon.fromJson(beaconJson))
-          .toList()
-          : null,
-      gpsData: GPSData.fromJson(json['gpsData']),
-      magnetometerData: MagnetometerData.fromJson(json['magnetometerData']),
-      accelerometerData: AccelerometerData.fromJson(json['accelerometerData']),
-      lux: json['lux'],
-      timeStamp: json['timeStamp'],
-    );
+  Data.fromJson(Map<String, dynamic> json) {
+    sId = json['_id'];
+    buildingID = json['building_ID'];
+    location = json['location'];
+    if (json['data'] != null) {
+      data = <Data>[];
+      json['data'].forEach((v) {
+        data!.add(new Data.fromJson(v));
+      });
+    }
+    createdAt = json['createdAt'];
+    updatedAt = json['updatedAt'];
+    iV = json['__v'];
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'beacons': beacons?.map((beacon) => beacon.toJson()).toList(),
-      'gpsData': gpsData.toJson(),
-      'magnetometerData': magnetometerData.toJson(),
-      'accelerometerData': accelerometerData.toJson(),
-      'lux': lux,
-      'timeStamp': timeStamp,
-    };
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['_id'] = this.sId;
+    data['building_ID'] = this.buildingID;
+    data['location'] = this.location;
+    if (this.data != null) {
+      data['data'] = this.data!.map((v) => v.toJson()).toList();
+    }
+    data['createdAt'] = this.createdAt;
+    data['updatedAt'] = this.updatedAt;
+    data['__v'] = this.iV;
+    return data;
   }
 }
 
-class GPSData {
+class Data1 {
+  GpsData? gpsData;
+  List<Beacons>? beacons;
+  String? sId;
+  List<Wifi>? wifi;
+  Data1({this.gpsData, this.beacons, this.sId, this.wifi});
+  Data1.fromJson(Map<String, dynamic> json) {
+    gpsData =
+    json['gpsData'] != null ? new GpsData.fromJson(json['gpsData']) : null;
+    if (json['beacons'] != null) {
+      beacons = <Beacons>[];
+      json['beacons'].forEach((v) {
+        beacons!.add(new Beacons.fromJson(v));
+      });
+    }
+    sId = json['_id'];
+    if (json['wifi'] != null) {
+      wifi = <Wifi>[];
+      json['wifi'].forEach((v) {
+        wifi!.add(new Wifi.fromJson(v));
+      });
+    }
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    if (this.gpsData != null) {
+      data['gpsData'] = this.gpsData!.toJson();
+    }
+    if (this.beacons != null) {
+      data['beacons'] = this.beacons!.map((v) => v.toJson()).toList();
+    }
+    data['_id'] = this.sId;
+    if (this.wifi != null) {
+      data['wifi'] = this.wifi!.map((v) => v.toJson()).toList();
+    }
+    return data;
+  }
+}
+
+class GpsData {
   double? latitude;
   double? longitude;
   double? accuracy;
   double? altitude;
 
-  GPSData({
-    this.latitude,
-    this.longitude,
-    this.accuracy,
-    this.altitude,
-  });
+  GpsData({this.latitude, this.longitude, this.accuracy, this.altitude});
 
-  factory GPSData.fromJson(Map<String, dynamic> json) {
-    return GPSData(
-      latitude: json['latitude'],
-      longitude: json['longitude'],
-      accuracy:(json['accuracy']!=null)? json['accuracy'].toDouble():json['accuracy'],
-      altitude: json['altitude'],
-    );
+  GpsData.fromJson(Map<String, dynamic> json) {
+    latitude = json['latitude'];
+    longitude = json['longitude'];
+    accuracy = json['accuracy'];
+    altitude = json['altitude'];
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'latitude': latitude,
-      'longitude': longitude,
-      'accuracy': accuracy,
-      'altitude': altitude,
-    };
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['latitude'] = this.latitude;
+    data['longitude'] = this.longitude;
+    data['accuracy'] = this.accuracy;
+    data['altitude'] = this.altitude;
+    return data;
   }
 }
 
-class MagnetometerData {
-  double value;
+class Beacons {
+  String? beaconMacId;
+  List<int>? beaconRssi;
+  String? sId;
 
-  MagnetometerData({required this.value});
+  Beacons({this.beaconMacId, this.beaconRssi, this.sId});
 
-  factory MagnetometerData.fromJson(Map<String, dynamic> json) {
-    return MagnetometerData(
-      value: (json['value'] != null) ? json['value'].toDouble() : 0.0,
-    );
+  Beacons.fromJson(Map<String, dynamic> json) {
+    beaconMacId = json['beaconMacId'];
+    beaconRssi = json['beaconRssi'].cast<int>();
+    sId = json['_id'];
   }
 
-
   Map<String, dynamic> toJson() {
-    return {
-      'value': value,
-    };
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['beaconMacId'] = this.beaconMacId;
+    data['beaconRssi'] = this.beaconRssi;
+    data['_id'] = this.sId;
+    return data;
   }
 }
 
-class AccelerometerData {
-  double x;
-  double y;
-  double z;
+class Wifi {
+  String? wifiName;
+  int? wifiStrength;
+  String? sId;
 
-  AccelerometerData({
-    required this.x,
-    required this.y,
-    required this.z,
-  });
+  Wifi({this.wifiName, this.wifiStrength, this.sId});
 
-  factory AccelerometerData.fromJson(Map<String, dynamic> json) {
-    return AccelerometerData(
-      x: json['x'].toDouble(),
-      y: json['y'].toDouble(),
-      z: json['z'].toDouble(),
-    );
+  Wifi.fromJson(Map<String, dynamic> json) {
+    wifiName = json['wifiName'];
+    wifiStrength = json['wifiStrength'];
+    sId = json['_id'];
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'x': x,
-      'y': y,
-      'z': z,
-    };
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['wifiName'] = this.wifiName;
+    data['wifiStrength'] = this.wifiStrength;
+    data['_id'] = this.sId;
+    return data;
   }
 }

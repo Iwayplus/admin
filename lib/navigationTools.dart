@@ -13,6 +13,170 @@ import 'APIMODELS/polylinedata.dart';
 
 class tools {
 
+  static patchDataModel globalData = patchDataModel();
+  static bool gotBhart = false;
+  static List<double> localtoglobal(int x, int y,PDM.patchDataModel? patchData) {
+
+    x = x - 0;
+    y = y - 0;
+
+    ////
+    PDM.patchDataModel Data = PDM.patchDataModel();
+    if (patchData != null) {
+      Data = patchData;
+      if(patchData.patchData!.fileName == "004ef3cf-9294-4171-adc0-1554759d5400_IITCampus-BhartiSchool-ground_ground.png"){
+        gotBhart = true;
+      }
+
+    } else {
+      Data = globalData;
+    }
+    int floor = 0;
+
+    List<double> diff = [
+      0,
+      0,
+      0,
+    ];
+
+    // {"coordinates" : patchDataApi().fetchedPatchData!.patchData!.coordinates! } ;
+
+    List<Map<String, double>> ref = [
+      {
+        "lat": double.parse(Data.patchData!.coordinates![2].globalRef!.lat!),
+        "lon": double.parse(Data.patchData!.coordinates![2].globalRef!.lng!),
+        "localx": double.parse(Data.patchData!.coordinates![2].localRef!.lng!),
+        "localy": double.parse(Data.patchData!.coordinates![2].localRef!.lat!),
+      },
+      {
+        "lat": double.parse(Data.patchData!.coordinates![1].globalRef!.lat!),
+        "lon": double.parse(Data.patchData!.coordinates![1].globalRef!.lng!),
+        "localx": double.parse(Data.patchData!.coordinates![1].localRef!.lng!),
+        "localy": double.parse(Data.patchData!.coordinates![1].localRef!.lat!),
+      },
+      {
+        "lat": double.parse(Data.patchData!.coordinates![0].globalRef!.lat!),
+        "lon": double.parse(Data.patchData!.coordinates![0].globalRef!.lng!),
+        "localx": double.parse(Data.patchData!.coordinates![0].localRef!.lng!),
+        "localy": double.parse(Data.patchData!.coordinates![0].localRef!.lat!),
+      },
+      {
+        "lat": double.parse(Data.patchData!.coordinates![3].globalRef!.lat!),
+        "lon": double.parse(Data.patchData!.coordinates![3].globalRef!.lng!),
+        "localx": double.parse(Data.patchData!.coordinates![3].localRef!.lng!),
+        "localy": double.parse(Data.patchData!.coordinates![3].localRef!.lat!),
+      },
+    ];
+
+    int leastLat = 0;
+    for (int i = 0; i < ref.length; i++) {
+      if (ref[i]["lat"] == ref[leastLat]["lat"]) {
+        if (ref[i]["lon"]! > ref[leastLat]["lon"]!) {
+          leastLat = i;
+        }
+      } else if (ref[i]["lat"]! < ref[leastLat]["lat"]!) {
+        leastLat = i;
+      }
+    }
+
+    int c1 = (leastLat == 3) ? 0 : (leastLat + 1);
+    int c2 = (leastLat == 0) ? 3 : (leastLat - 1);
+    int highLon = (ref[c1]["lon"]! > ref[c2]["lon"]!) ? c1 : c2;
+
+    List<double> lengths = [];
+    for (int i = 0; i < ref.length; i++) {
+      double temp1;
+      if (i == ref.length - 1) {
+        temp1 = getHaversineDistance(ref[i], ref[0]);
+      } else {
+        temp1 = getHaversineDistance(ref[i], ref[i + 1]);
+      }
+      lengths.add(temp1);
+    }
+
+    double b = getHaversineDistance(ref[leastLat], ref[highLon]);
+    Map<String, double> horizontal = obtainCoordinates(ref[leastLat], 0, b);
+
+    double c = getHaversineDistance(ref[leastLat], horizontal);
+    double a = getHaversineDistance(ref[highLon], horizontal);
+
+    double out = acos((b * b + c * c - a * a) / (2 * b * c)) * 180 / pi;
+
+    Map<String, double> localRef = {"localx": 0, "localy": 0};
+
+    if (diff != null && diff.length > 1) {
+      List<double> test = diff.where((d) => d == floor).toList();
+      if (test.isNotEmpty) {
+        localRef["localx"] = x - test[0];
+        localRef["localy"] = y - test[1];
+      } else {
+        localRef["localx"] = x as double;
+        localRef["localy"] = y as double;
+      }
+    } else {
+      localRef["localx"] = x as double;
+      localRef["localy"] = y as double;
+    }
+
+    double l = distance(ref[leastLat], ref[highLon]);
+    double m = distance(localRef, ref[highLon]);
+    double n = distance(ref[leastLat], localRef);
+
+    double theta = acos((l * l + n * n - m * m) / (2 * l * n)) * 180 / pi;
+
+    if (((l * l + n * n - m * m) / (2 * l * n) > 1) || m == 0 || n == 0) {
+      theta = 0;
+    }
+
+    double ang = theta + out;
+    double dist =
+        distance(ref[leastLat], localRef) * 0.3048; // to convert to meter
+
+    double ver = dist * sin(ang * pi / 180.0);
+    double hor = dist * cos(ang * pi / 180.0);
+
+    Map<String, double> finalCoords =
+    obtainCoordinates(ref[leastLat], ver, hor);
+
+    return [finalCoords["lat"]!, finalCoords["lon"]!];
+  }
+
+  static double getHaversineDistance(
+      Map<String, double> firstLocation, Map<String, double> secondLocation) {
+    const earthRadius = 6371; // km
+    double diffLat =
+        ((secondLocation["lat"]! - firstLocation["lat"]!) * pi) / 180;
+    double difflon =
+        ((secondLocation["lon"]! - firstLocation["lon"]!) * pi) / 180;
+    double arc = cos((firstLocation["lat"]! * pi) / 180) *
+        cos((secondLocation["lat"]! * pi) / 180) *
+        sin(difflon / 2) *
+        sin(difflon / 2) +
+        sin(diffLat / 2) * sin(diffLat / 2);
+    double line = 2 * atan2(sqrt(arc), sqrt(1 - arc));
+    double distance = earthRadius * line * 1000;
+    return distance;
+  }
+
+  static Map<String, double> obtainCoordinates(
+      Map<String, double> reference, double vertical, double horizontal) {
+    const double R = 6378137; // Earth’s radius, sphere
+    double dLat = vertical / R;
+    double dLon = horizontal / (R * cos((pi * reference["lat"]!) / 180));
+    double latA = reference["lat"]! + (dLat * 180) / pi;
+    double lonA = reference["lon"]! + (dLon * 180) / pi;
+    return {"lat": latA, "lon": lonA};
+  }
+
+  static double distance(
+      Map<String, double> first, Map<String, double> second) {
+    double dist1 = pow((second["localy"]! - first["localy"]!), 2) as double;
+    double dist2 = pow((second["localx"]! - first["localx"]!), 2) as double;
+    double dist = dist1 + dist2;
+    //  pow((second["localy"] - first["localy"]), 2) as double + pow((second["localx"] - first["localx"]), 2) as double ;
+    return sqrt(dist);
+  }
+
   static double calculateAerialDist(double lat1, double lon1, double lat2, double lon2) {
     const double metersPerDegree = 111320;
     double latDifference = lat2 - lat1;

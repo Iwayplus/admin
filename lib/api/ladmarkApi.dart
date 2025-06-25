@@ -8,7 +8,7 @@ import 'RefreshTokenAPI.dart';
 
 
 class landmarkApi {
-  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/secured/landmarks-demo" : "https://maps.iwayplus.in/secured/landmarks";
+  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/secured/landmarks-demo" : "https://dev.iwayplus.in/secured/landmarks";
   String accessToken = "";
 
   Future<land> fetchLandmarkData(String id, {bool outdoor = false}) async {

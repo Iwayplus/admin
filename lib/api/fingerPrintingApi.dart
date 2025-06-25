@@ -7,18 +7,14 @@ import 'RefreshTokenAPI.dart';
 
 
 class fingerPrintingApi {
-  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/admin/add-fingerprinting-data" : "https://maps.iwayplus.in/admin/add-fingerprinting-data";
+  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/admin/add-fingerprinting-data" : "https://dev.iwayplus.in/admin/add-fingerprinting-data";
   String accessToken = "";
-
   Future<bool> Finger_Printing_API(String building_ID, Data fingerPrint) async {
-
     print("buildigid:${building_ID}");
-
     if(fingerPrint.sensorFingerprint == null){
       print("fail 1");
       return false;
     }
-
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
     accessToken = await prefs.getMap("signin")!["accessToken"];
 

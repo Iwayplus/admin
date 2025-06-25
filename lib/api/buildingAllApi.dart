@@ -12,7 +12,7 @@ import '../navigationTools.dart';
 import 'RefreshTokenAPI.dart';
 
 class buildingAllApi {
-  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/secured/building/all" : "https://maps.iwayplus.in/secured/building/all";
+  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/secured/building/all" : "https://dev.iwayplus.in/secured/building/all";
   String accessToken = "";
   static String selectedBuildingID="";
   static String selectedBuildingName="";

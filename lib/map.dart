@@ -1,23 +1,22 @@
 import 'dart:async';
-
+import 'package:admin/APIMODELS/waypoint.dart';
+import 'package:admin/api/waypoint.dart';
 import 'package:admin/fingerprinting/pannels/finger_printing_pannel_controller.dart';
 import 'package:admin/modes.dart';
 import 'package:admin/patchController.dart';
+import 'package:admin/point2d.dart';
 import 'package:admin/polygonController.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-
 import 'APIMODELS/FingerPrintData.dart';
 import 'APIMODELS/polylinedata.dart' as poly;
 import 'GPS.dart';
 import 'api/buildingAllApi.dart';
-
 import 'dart:ui' as ui;
 import 'dart:typed_data';
-
 import 'api/fingerPrintGet.dart';
 import 'beaconController.dart';
 import 'fingerprinting/fingerprinting.dart';
@@ -51,6 +50,15 @@ class _googleMapState extends State<googleMap> {
     super.initState();
     fingerprinting.context = context;
     fingerprinting.updateMarkers = updateMarkers;
+    fetchWayPoints();
+
+  }
+
+  fetchWayPoints() async {
+    var waypointData = await waypointapi().fetchwaypoint(buildingAllApi.selectedBuildingID);
+    PolygonController.waypoint=waypointData as Map<String, List<PathModel>>;
+    print("waypoint:${PolygonController.waypoint['0']![0].pathNetwork}");
+     print("generateSampledPoints:${Point2D.generateSampledPointsFromWaypointGraph(PolygonController.waypoint)}");
   }
 
   Future<void> goToUser() async {
@@ -68,7 +76,7 @@ class _googleMapState extends State<googleMap> {
     await buildingController.fetchBuildingAllData();
     await patchController.createPatch();
     fitPolygonInScreen(patchController.polygons.first);
-    await polygonController.renderRooms(0);
+    await polygonController.renderRooms(0, patchController.data);
     await beaconController.getBeacons();
 
     setState(() {});
@@ -180,7 +188,7 @@ class _googleMapState extends State<googleMap> {
                         onTap: () {
                           fingerprinting.disableFingerprinting();
                           setState(() {
-                            polygonController.renderRooms(revfloorList[i]);
+                            polygonController.renderRooms(revfloorList[i], patchController.data);
                           });
                         },
                       );
@@ -210,7 +218,7 @@ class _googleMapState extends State<googleMap> {
                     onTap:(){
                       setState((){
                         print("enabling");
-                        fingerprinting.enableFingerprinting(polygonController,beaconController);
+                        fingerprinting.enableFingerprinting(patchController,polygonController,beaconController);
                       });
                     },
                   )],

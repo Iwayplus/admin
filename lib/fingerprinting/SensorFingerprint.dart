@@ -79,42 +79,24 @@ class SensorFingerprint {
 
 class Beacon {
   String? beaconMacId;
-  String? beaconName;
-  int? beaconRssi;
-  Position? beaconPosition;
-  String? beaconFloor;
-  String? buildingId;
+  List<int> beaconRssi;
 
   Beacon({
     this.beaconMacId,
-    this.beaconName,
-    this.beaconRssi,
-    this.beaconPosition,
-    this.beaconFloor,
-    this.buildingId,
+    required this.beaconRssi,
   });
 
   Map<String, dynamic> toJson() {
     return {
       'beaconMacId': beaconMacId,
-      'beaconName': beaconName,
       'beaconRssi': beaconRssi,
-      'beaconPosition': beaconPosition?.toJson(),
-      'beaconFloor': beaconFloor,
-      'buildingId': buildingId,
     };
   }
 
   factory Beacon.fromJson(Map<String, dynamic> json) {
     return Beacon(
       beaconMacId: json['beaconMacId'],
-      beaconName: json['beaconName'],
-      beaconRssi: json['beaconRssi'],
-      beaconPosition: json['beaconPosition'] != null
-          ? Position.fromJson(json['beaconPosition'])
-          : null,
-      beaconFloor: json['beaconFloor'],
-      buildingId: json['buildingId'],
+      beaconRssi: List<int>.from(json['beaconRssi'] ?? [])
     );
   }
 }
@@ -232,3 +214,5 @@ class AccelerometerData {
     };
   }
 }
+
+
