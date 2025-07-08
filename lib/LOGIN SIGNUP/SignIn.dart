@@ -4,8 +4,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:math';
 
+import '../UserLog.dart';
+import '../mainScreen.dart';
 import '../map.dart';
 import 'LOGIN SIGNUP APIS/APIS/SignInAPI.dart';
 import 'LOGIN SIGNUP APIS/MODELS/SignInAPIModel.dart';
@@ -41,10 +44,46 @@ class _SignInState extends State<SignIn> {
   bool loginclickable = false;
   Color buttonBGColor = new Color(0xff8D8C8C);
 
+  void checkPermissions() async {
+    await requestLocationPermission();
+    await requestBluetoothConnectPermission();
+    //  await requestActivityPermission();
+  }
+
+
+  Future<void> requestBluetoothConnectPermission() async {
+    final PermissionStatus permissionStatus = await Permission.bluetoothScan.request();
+
+    if (permissionStatus.isGranted) {
+      wsocket.message["deviceInfo"]["permissions"]["BLE"] = true;
+      wsocket.message["deviceInfo"]["sensors"]["BLE"] = true;
+
+      //widget.bluetoothGranted = true;
+      // Permission granted, you can now perform Bluetooth operations
+    } else {
+      wsocket.message["deviceInfo"]["permissions"]["BLE"] = false;
+      wsocket.message["deviceInfo"]["sensors"]["BLE"] = false;
+
+      // Permission denied, handle accordingly
+    }
+  }
+
+  Future<void> requestLocationPermission() async {
+    final status = await Permission.locationWhenInUse.request();
+    if (status.isGranted) {
+      wsocket.message["deviceInfo"]["permissions"]["location"] = true;
+      wsocket.message["deviceInfo"]["sensors"]["location"] = true;
+    } else {
+      wsocket.message["deviceInfo"]["permissions"]["location"] = false;
+      wsocket.message["deviceInfo"]["sensors"]["location"] = false;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     // Initialize the fields with provided parameters if available
+    checkPermissions();
     if (widget.emailOrPhoneNumber != null) {
       mailEditingController.text = widget.emailOrPhoneNumber!;
       emailFieldListner();
@@ -140,7 +179,7 @@ class _SignInState extends State<SignIn> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => googleMap(),
+          builder: (context) => BeaconFingerprintScreen(),
         ),
       );
     }

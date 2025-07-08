@@ -50,6 +50,7 @@ class buildingAllApi {
   Future<void> findNearbyBuilding(List<buildingAll> buildings) async {
     GPS gps = GPS();
     Position userPosition = await gps.getCurrentCoordinates();
+    print("userposition:${userPosition.latitude} ${userPosition.longitude}");
     double d = double.infinity;
     for (var building in buildings) {
       print("${building.buildingName}   <>    ${building.coordinates}");

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:admin/UserLog.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -37,6 +38,7 @@ class patchAPI {
         deviceModel = "Unknown Platform";
       }
     }
+    wsocket.message["deviceInfo"]["deviceManufacturer"]=deviceManufacturer;
 
     final Map<String, dynamic> data = {
       "id": id,

@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:hive/hive.dart';
 import 'package:light/light.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:wifi_scan/wifi_scan.dart';
@@ -20,6 +21,7 @@ import '../APIMODELS/beaconData.dart';
 import '../APIMODELS/patchDataModel.dart';
 import '../APIMODELS/polylinedata.dart' as poly;
 import '../Bluetooth/BluetoothScanAndroidClass.dart';
+import '../DATABASE/DATABASEMODEL/markerModel.dart';
 import '../GPS.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import '../api/beaconapi.dart';
@@ -66,6 +68,36 @@ class Fingerprinting{
   set updateMarkers(Function value) {
     _updateMarkers = value;
   }
+  Future<void> updateMarker({
+    required MarkerId markerId,
+    required LatLng position,
+    BitmapDescriptor? newIcon,
+  }) async {
+    final box = Hive.box<MarkerModel>('markerBox');
+    // Store in Hive
+    final markerModel = MarkerModel(
+      markerId: markerId.value,
+      latitude: position.latitude,
+      longitude: position.longitude,
+      iconPath: 'assets/exitservice.svg',
+      savedAt: DateTime.now(),
+    );
+    await box.put(markerId.value, markerModel);
+
+    // Update marker on map
+    _dotMarkers.removeWhere((marker) => marker.markerId == markerId);
+
+    final updatedMarker = Marker(
+      markerId: markerId,
+      position: position,
+      icon: newIcon ?? await _svgToBitmapDescriptor('assets/exitservice.svg', Size(40, 40)),
+    );
+    _dotMarkers.add(updatedMarker);
+    _updateMarkers();
+  }
+
+
+
   set context(BuildContext value) {
     _context = value;
   }
@@ -81,16 +113,15 @@ class Fingerprinting{
     // print("fingerprint data:${fingerPrintData!.fingerPrintData}");
     // preProcessedData=computeBeaconStats(fingerPrintData!.fingerPrintData);
     Map<String,Set<Point2D>> interpolatedWaypoints=await polygonController.fetchWayPoints();
-    List<poly.Nodes> waypoints = await polygonController.extractWaypoints();
+   // List<poly.Nodes> waypoints = await polygonController.extractWaypoints();
     interpolatedWaypoints.forEach((interfloor, points) async {
       if(interfloor==floor.toString()){
-        await addDotMarkerInterpolated(points, patchController.data, fingerPrintData);
+        await addDotMarkerInterpolated(points, patchController.data, fingerPrintData,_context);
       }
     });
     // for (var point in waypoints) {
     //   await addDotMarker(point, patchController.data, fingerPrintData);
     // }
-
     print("enabled");
   }
   void disableFingerprinting(){
@@ -118,6 +149,83 @@ class Fingerprinting{
     FingerPrintingPannel.hidePanel();
     _updateMarkers();
   }
+
+  void stopFingerprinting(){
+    // _dotMarkers.clear();
+    _Markers.clear();
+    accessPoints = [];
+    subscription = null;
+    userPosition = null;
+    gps = GPS(); // Reinitialize GPS object if required
+    data = null;
+    gpsPosition = null;
+    _x = 0.0;
+    _y = 0.0;
+    _z = 0.0;
+    theta = 0.0;
+    _lightValue = 0;
+    // Cancel any active subscriptions and reset
+    _Lightsubscription?.cancel();
+    _Lightsubscription = null;
+    // Cancel the timer if active
+    timer?.cancel();
+    timer = null;
+    FingerPrintingPannel.hidePanel();
+    _updateMarkers();
+  }
+
+  Future<void> addBeaconMarkers(
+      Map<String, beacon>? apibeaconmap,
+      patchDataModel? patchData,
+      int targetFloor,
+      ) async {
+    final markerBox = Hive.box<MarkerModel>('markerBox');
+    final Set<String> savedMarkerIds = markerBox.values
+        .map((marker) => marker.markerId)
+        .toSet();
+
+    var dotIcon = await _svgToBitmapDescriptor('assets/dot.svg', Size(40, 40));
+    var exitIcon = await _svgToBitmapDescriptor('assets/exitservice.svg', Size(40, 40));
+
+    print("markers added for ${apibeaconmap}");
+    if (apibeaconmap != null && apibeaconmap.isNotEmpty) {
+      for (var entry in apibeaconmap.entries) {
+        final beaconItem = entry.value;
+
+        if (beaconItem.floor == targetFloor &&
+            beaconItem.coordinateX != null &&
+            beaconItem.coordinateY != null) {
+
+          List<double> value = tools.localtoglobal(
+            beaconItem.coordinateX!,
+            beaconItem.coordinateY!,
+            patchData,
+          );
+
+          LatLng currentLatLng = LatLng(value[0], value[1]);
+          // Check if beacon ID (entry.key) matches any stored marker
+          bool isSaved = savedMarkerIds.contains('${currentLatLng.latitude},${currentLatLng.longitude}');
+          _dotMarkers.add(
+            Marker(
+              markerId: MarkerId('${currentLatLng.latitude},${currentLatLng.longitude}'),
+              position: currentLatLng,
+              icon: isSaved ? exitIcon : dotIcon,
+              onTap: () {
+                // optional onTap logic
+              },
+            ),
+          );
+        }
+      }
+    }
+
+    _updateMarkers();
+  }
+
+
+
+
+
 
   Future<void> addDotMarker(poly.Nodes point, patchDataModel? patchData, fp.FingerPrintData? fingerPrintData) async {
     print("dotmarker");
@@ -149,19 +257,19 @@ class Fingerprinting{
     _updateMarkers();
   }
 
-  Future<void> addDotMarkerInterpolated(Set<Point2D> interPolatedPoints, patchDataModel? patchData, fp.FingerPrintData? fingerPrintData) async {
+  Future<void> addDotMarkerInterpolated(Set<Point2D> interPolatedPoints, patchDataModel? patchData, fp.FingerPrintData? fingerPrintData,BuildContext context) async {
     print("dotmarker");
-
+    final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
+    final double pixelSize = 16 * devicePixelRatio;
+    final Size size = Size(pixelSize, pixelSize);
     List<LatLng> addedMarkerPositions = [];
     for(Point2D point in interPolatedPoints){
-      var svgIcon = await _svgToBitmapDescriptor('assets/dot.svg', Size(40, 40));
+      var svgIcon = await _svgToBitmapDescriptor('assets/dot.svg', Size(pixelSize, pixelSize));
       if(fingerPrintData!=null){
         String targetLocation = "${point.x},${point.y},$floor";
-        bool matchFound = fingerPrintData.data!.any(
-              (entry) => entry.location == targetLocation,
-        );
+        bool matchFound = fingerPrintData.data!.any((entry) => entry.location == targetLocation,);
         if (matchFound) {
-          svgIcon = await _svgToBitmapDescriptor('assets/exitservice.svg', Size(40, 40));
+          svgIcon = await _svgToBitmapDescriptor('assets/exitservice.svg', Size(pixelSize, pixelSize));
         }
       }
       List<double> value = tools.localtoglobal(point.x, point.y, patchData);
@@ -169,7 +277,7 @@ class Fingerprinting{
       poly.Nodes nodePoint=poly.Nodes(coordx: point.x,coordy:point.y,lat: value[0],lon: value[1]);
       //obstacles avoidance.
       bool isFarEnough = addedMarkerPositions.every(
-            (existing) => tools.calculateAerialDist(existing.latitude,existing.longitude,currentLatLng.latitude,currentLatLng.longitude) >= 1.2,);
+            (existing) => tools.calculateAerialDist(existing.latitude,existing.longitude,currentLatLng.latitude,currentLatLng.longitude) >= 1.2);
       if (!isFarEnough) continue;
       _dotMarkers.add(
         Marker(
@@ -182,6 +290,7 @@ class Fingerprinting{
              userPosition = nodePoint;
             addMarker(LatLng(value[0], value[1]));
           },
+          anchor: Offset(0.5, 0.5),
         ),
       );
       addedMarkerPositions.add(currentLatLng);
@@ -604,13 +713,11 @@ class Fingerprinting{
   Future<BitmapDescriptor> _svgToBitmapDescriptor(String svgAsset, Size size,) async {
     // Load SVG data
     String svgString = await DefaultAssetBundle.of(_context).loadString(svgAsset);
-
     // Render SVG to picture
     DrawableRoot svgDrawableRoot = await svg.fromSvgString(svgString, svgString);
     final picture = svgDrawableRoot.toPicture(
       size: size, // Define the size of the SVG
     );
-
     // Convert to image
     final image = await picture.toImage(size.width.toInt(), size.height.toInt());
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
@@ -732,9 +839,8 @@ class Fingerprinting{
 
   Future<bool> stopCollectingRealData() async {
     timer?.cancel();
-    bluetoothScanAndroidClass.stopScan();
+   bleManager.stopScanning();
     //cancel beacon stream here
-
     return true;
   }
 

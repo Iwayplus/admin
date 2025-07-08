@@ -1,11 +1,39 @@
 import 'package:admin/map.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:path_provider/path_provider.dart';
+import 'DATABASE/DATABASEMODEL/markerModel.dart';
 import 'LOGIN SIGNUP/SignIn.dart';
 import 'SharedPreferenceHelper.dart';
+import 'UserLog.dart';
+import 'mainScreen.dart';
 
-void main() {
+
+wsocket ws = wsocket("com.iwayplus.rni");
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  var appDocDir = await getApplicationDocumentsDirectory();
+  print("appDocDir:${appDocDir.path}");
+  Hive.init(appDocDir.path);
+  Hive.registerAdapter(MarkerModelAdapter());
+  await Hive.openBox<MarkerModel>('markerBox');
+  await cleanOldMarkers();
   runApp(MyApp());
 }
+
+Future<void> cleanOldMarkers() async {
+  final box = Hive.box<MarkerModel>('markerBox');
+  final now = DateTime.now();
+  final keysToDelete = box.values
+      .where((marker) => now.difference(marker.savedAt).inDays > 15)
+      .map((marker) => marker.markerId)
+      .toList();
+  print("keys tht has to be deleted:${keysToDelete}");
+  for (String key in keysToDelete) {
+    await box.delete(key);
+  }
+}
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -38,6 +66,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _preferencesFuture = SharedPreferenceHelper.getInstance();
+    print("preferencesFuture:${_preferencesFuture}");
   }
 
   @override
@@ -50,10 +79,11 @@ class _HomePageState extends State<HomePage> {
         } else if (snapshot.hasError) {
           return SignIn();
         } else if (snapshot.hasData) {
+          print("data has been stored:${snapshot.data?.getMap("signin")}");
           if (snapshot.data?.getMap("signin") == null) {
             return SignIn();
           } else {
-            return const googleMap();
+            return BeaconFingerprintScreen();
           }
         } else {
           return SignIn();

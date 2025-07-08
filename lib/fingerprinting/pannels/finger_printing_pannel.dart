@@ -31,7 +31,6 @@ class _pinLandmarkState extends State<pinLandmark> {
       for (int i = 0; i < isSelected.length; i++) {
         isSelected[i] = i == index;
       }
-
       // Update selectedTimeInSeconds based on the index
       switch (index) {
         case 0:
@@ -49,8 +48,6 @@ class _pinLandmarkState extends State<pinLandmark> {
       }
     });
   }
-
-
   void startCountdown() {
     remainingTime.value = selectedTimeInSeconds;
     countdownTimer?.cancel();
@@ -69,7 +66,6 @@ class _pinLandmarkState extends State<pinLandmark> {
   }
 
   Landmarks? _previousPinedLandmark;
-
   void setPickerIndex(int index) {
     // Dynamically change the selected index
     _controller.animateToItem(
@@ -78,14 +74,13 @@ class _pinLandmarkState extends State<pinLandmark> {
       curve: Curves.easeInOut, // Animation curve
     );
   }
-
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        IconButton(onPressed: (){widget.fingerprinting.disableFingerprinting();}, icon: Icon(Icons.cancel)),
+        IconButton(onPressed: (){widget.fingerprinting.stopFingerprinting();}, icon: Icon(Icons.cancel)),
         Card(
           child: Container(
             width: screenWidth-32,
@@ -94,7 +89,7 @@ class _pinLandmarkState extends State<pinLandmark> {
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                  children:[
                     Text("Position: (${widget.fingerprinting.userPosition?.coordx},${widget.fingerprinting.userPosition?.coordy})"),
                     Text("Floor: ${widget.fingerprinting.floor}"),
                     Text("Building: ${buildingAllApi.selectedBuildingName}"),
@@ -158,7 +153,7 @@ class _pinLandmarkState extends State<pinLandmark> {
         SizedBox(height: 12,),
         ActionSlider.standard(
           child: const Text('Slide to capture'),
-          action: (controller) async {
+          action: (controller)async{
             widget.fingerprinting.collectSensorDataEverySecond();
             startCountdown();
             controller.loading(); //starts loading animation
@@ -168,16 +163,37 @@ class _pinLandmarkState extends State<pinLandmark> {
               controller.success();
               await Future.delayed(Duration(seconds:5));
               controller.reset();
-              widget.fingerprinting.disableFingerprinting();
+              widget.fingerprinting.updateMarker(markerId:  MarkerId('${widget.fingerprinting.userPosition!.coordx},${widget.fingerprinting.userPosition!.coordy}'), position: LatLng(widget.fingerprinting.userPosition!.lat!, widget.fingerprinting.userPosition!.lon!));
+              widget.fingerprinting.stopFingerprinting();
             }else{
               controller.failure();
               await Future.delayed(Duration(seconds: 5));
               controller.reset();
-              widget.fingerprinting.disableFingerprinting();
+              widget.fingerprinting.stopFingerprinting();
+              _showErrorDialog(context);
+
             }
           },
         ),
       ],
     );
   }
+  void _showErrorDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Error Occurred"),
+          content: Text("Please take fingerprinting data again at that point."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("OK"),
+            )
+          ],
+        );
+      },
+    );
+  }
+
 }

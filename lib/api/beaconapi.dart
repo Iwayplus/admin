@@ -16,6 +16,8 @@ class beaconapi {
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
     accessToken = await prefs.getMap("signin")!["accessToken"];
 
+    print("builidng id for beacon:${id}");
+
     final Map<String, dynamic> data = {
       "buildingId": id,
     };

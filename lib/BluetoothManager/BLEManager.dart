@@ -6,6 +6,7 @@ import '../APIMODELS/Building.dart';
 import '../APIMODELS/beaconData.dart';
 import '../Bluetooth/BluetoothDevice.dart';
 import '../HelperClass.dart';
+import '../UserLog.dart';
 
 
 class BLEManager{
@@ -95,13 +96,15 @@ class BLEManager{
     }
   }
 
-  void listenToScanUpdates() {
+  void listenToScanUpdates(){
     startScan();
     trimBuffer();
     if (kDebugMode) print("listenToScanUpdates");
-    _scanSubscription = eventChannel.receiveBroadcastStream().listen((device) {
+    _scanSubscription = eventChannel.receiveBroadcastStream().listen((device){
       if (kDebugMode) print("deviceDetail $device");
       BluetoothDevice deviceDetails = HelperClass().parseDeviceDetails(device);
+      wsocket.message["AppInitialization"]["nearByDevices"][deviceDetails.rawData] = deviceDetails.DeviceRssi;
+      wsocket.message["AppInitialization"]["bleScanResults"][deviceDetails.DeviceName] = int.parse(deviceDetails.DeviceRssi);
       buffer.putIfAbsent(deviceDetails.DeviceName, () => <DateTime, String>{});
       buffer[deviceDetails.DeviceName]![DateTime.now()] = deviceDetails.DeviceRssi;
     }, onError: (error) {

@@ -1,28 +1,36 @@
 import 'dart:async';
 import 'package:admin/APIMODELS/waypoint.dart';
+import 'package:admin/BluetoothManager/BLEManager.dart';
 import 'package:admin/api/waypoint.dart';
 import 'package:admin/fingerprinting/pannels/finger_printing_pannel_controller.dart';
 import 'package:admin/modes.dart';
 import 'package:admin/patchController.dart';
 import 'package:admin/point2d.dart';
 import 'package:admin/polygonController.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'APIMODELS/FingerPrintData.dart';
 import 'APIMODELS/polylinedata.dart' as poly;
 import 'GPS.dart';
+import 'SharedPreferenceHelper.dart';
+import 'UserLog.dart';
 import 'api/buildingAllApi.dart';
 import 'dart:ui' as ui;
 import 'dart:typed_data';
 import 'api/fingerPrintGet.dart';
 import 'beaconController.dart';
 import 'fingerprinting/fingerprinting.dart';
+import 'navigationTools.dart';
+import 'package:lottie/lottie.dart' as lott;
 
 class googleMap extends StatefulWidget {
-  const googleMap({super.key});
+  final String fromPage;
+  const googleMap({super.key, required this.fromPage});
 
   @override
   State<googleMap> createState() => _googleMapState();
@@ -44,20 +52,56 @@ class _googleMapState extends State<googleMap> {
   Fingerprinting fingerprinting = Fingerprinting();
 
   availableModes modes = availableModes();
+  wsocket ws = wsocket("com.iwayplus.rni");
+
+  bool isLoading=false;
+
 
   @override
   void initState() {
     super.initState();
     fingerprinting.context = context;
     fingerprinting.updateMarkers = updateMarkers;
+    checkPermissions();
     fetchWayPoints();
+  }
 
+  void checkPermissions() async {
+    await requestLocationPermission();
+    await requestBluetoothConnectPermission();
+    //  await requestActivityPermission();
+  }
+
+  Future<void> requestBluetoothConnectPermission() async {
+    final PermissionStatus permissionStatus = await Permission.bluetoothScan.request();
+    if (permissionStatus.isGranted) {
+      wsocket.message["deviceInfo"]["permissions"]["BLE"] = true;
+      wsocket.message["deviceInfo"]["sensors"]["BLE"] = true;
+      //widget.bluetoothGranted = true;
+      // Permission granted, you can now perform Bluetooth operations
+    } else {
+      wsocket.message["deviceInfo"]["permissions"]["BLE"] = false;
+      wsocket.message["deviceInfo"]["sensors"]["BLE"] = false;
+      // Permission denied, handle accordingly
+    }
+  }
+
+  Future<void> requestLocationPermission() async {
+    final status = await Permission.locationWhenInUse.request();
+    if (status.isGranted) {
+      wsocket.message["deviceInfo"]["permissions"]["location"] = true;
+      wsocket.message["deviceInfo"]["sensors"]["location"] = true;
+    } else {
+      wsocket.message["deviceInfo"]["permissions"]["location"] = false;
+      wsocket.message["deviceInfo"]["sensors"]["location"] = false;
+    }
   }
 
   fetchWayPoints() async {
+    SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
     var waypointData = await waypointapi().fetchwaypoint(buildingAllApi.selectedBuildingID);
     PolygonController.waypoint=waypointData as Map<String, List<PathModel>>;
-    print("waypoint:${PolygonController.waypoint['0']![0].pathNetwork}");
+    wsocket.message["userId"] = await prefs.getMap("signin")!["userId"];
      print("generateSampledPoints:${Point2D.generateSampledPointsFromWaypointGraph(PolygonController.waypoint)}");
   }
 
@@ -72,6 +116,7 @@ class _googleMapState extends State<googleMap> {
   }
 
   Future<void> createRooms() async {
+
     buildingAllApi buildingController = buildingAllApi();
     await buildingController.fetchBuildingAllData();
     await patchController.createPatch();
@@ -79,7 +124,9 @@ class _googleMapState extends State<googleMap> {
     await polygonController.renderRooms(0, patchController.data);
     await beaconController.getBeacons();
 
-    setState(() {});
+    setState(() {
+      isLoading=true;
+    });
   }
 
   void fitPolygonInScreen(Polygon polygon) {
@@ -128,12 +175,45 @@ class _googleMapState extends State<googleMap> {
     setState(() {});
   }
 
+  BLEManager _bleManager=BLEManager();
   Color buttonColor=Colors.red;
   String nearesPoint="";
   Timer? _strtTimer;
-  
+  bool _isbeaconLogging=false;
+  double _progressValue = 0.0;
+  void _updateProgress() {
+    const onsec = const Duration(seconds: 1);
+    Timer.periodic(onsec, (Timer t) {
+      setState(() {
+        _progressValue += 0.08;
+        if (_progressValue.toStringAsFixed(1) == '1.0') {
+          t.cancel();
+          return;
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+    _googleMapController.dispose();
+    _messageTimer?.cancel();
+  }
+  void safeSendMessage() {
+    if (!wsocket.isConnected) {
+      print("Socket not connected. Will reconnect and send message once connected.");
+      wsocket.sendmessg(); // internally waits and emits on reconnect
+    } else {
+      wsocket.sendmessg(); // safe to emit
+    }
+  }
+  Timer? _messageTimer;
   @override
   Widget build(BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
       body: Stack(
         children: [
@@ -141,6 +221,7 @@ class _googleMapState extends State<googleMap> {
             initialCameraPosition: _initialCameraPosition,
             onMapCreated: (controller) {
               _googleMapController = controller;
+              _updateProgress();
               createRooms();
               goToUser();
             },
@@ -156,7 +237,6 @@ class _googleMapState extends State<googleMap> {
             bottom: 150,
             child: Column(
               children: [
-
                 Text("${nearesPoint}"),
                 SpeedDial(
                   activeIcon: Icons.close,
@@ -164,11 +244,9 @@ class _googleMapState extends State<googleMap> {
                   children: List.generate(
                     polygonController.numberOfFloors.length,
                         (int i) {
-                      //
                       List<int> floorList = polygonController.numberOfFloors;
                       List<int> revfloorList = floorList;
                       revfloorList.sort();
-
                       return SpeedDialChild(
                         child: Semantics(
                           label: "${revfloorList[i]}",
@@ -202,11 +280,11 @@ class _googleMapState extends State<googleMap> {
                       fontWeight: FontWeight.w500,
                       color: Color(0xff24b9b0),
                       height: 19 / 16,
-
                     ),
                   ),
                 ),
                 SizedBox(height: 12,),
+                (widget.fromPage=="FINGERPRINTING")?
                 SpeedDial(
                   direction: SpeedDialDirection.left,
                   activeIcon: Icons.close,
@@ -221,22 +299,54 @@ class _googleMapState extends State<googleMap> {
                         fingerprinting.enableFingerprinting(patchController,polygonController,beaconController);
                       });
                     },
-                  )],
+                  ),
+                  ],
                   child: Icon(Icons.code_off),
-                ),
+                ):Container(),
                 SizedBox(height: 20,),
-                // FloatingActionButton(
-                //   backgroundColor: Colors.green,
-                //   onPressed: ()async{
-                //   fingerprinting.collectSensorDataEverySecond();
-                // },child: Icon(Icons.account_balance),),
-                // SizedBox(height: 20,),
-                // FloatingActionButton(
-                //   backgroundColor: Colors.red,
-                //   onPressed: () async {
-                //     fingerprinting.stopCollectingRealData();
-                //     _strtTimer?.cancel();
-                //   },child: Icon(Icons.account_balance),),
+                (beaconController.apibeaconmap!=null && widget.fromPage!="FINGERPRINTING")?
+                FloatingActionButton(
+                  backgroundColor:(!_isbeaconLogging)? Colors.green:Colors.red,
+                  onPressed: ()async{
+                    if(!_isbeaconLogging){
+                      wsocket.message["AppInitialization"]["BID"]=buildingAllApi.selectedBuildingID;
+                      wsocket.message["AppInitialization"]["buildingName"]=buildingAllApi.selectedVenue;
+                      _messageTimer=Timer.periodic(Duration(seconds: 5),(timer){
+                        wsocket.sendmessg();
+                      });
+                      fingerprinting.addBeaconMarkers(beaconController.apibeaconmap,patchController.data,polygonController.floor).then((_){
+                        _bleManager.startScanning(bufferSize: 5, streamFrequency: 5);
+                      });
+                      _bleManager.bufferedDeviceStream.listen((device){
+                        device.forEach((deviceName, deviceRssi) {
+                          final rssiList = deviceRssi.values
+                              .map((val) => int.tryParse(val.toString()))
+                              .whereType<int>() // filters out nulls
+                              .toList();
+                          if( beaconController.apibeaconmap!.containsKey(deviceName) && beaconController.apibeaconmap![deviceName]!.floor==polygonController.floor)
+                          {
+                            final beaconItem = beaconController.apibeaconmap![deviceName];
+                            List<double> value = tools.localtoglobal(
+                                beaconItem!.coordinateX!, beaconItem.coordinateY!, patchController.data);
+                            LatLng currentLatLng = LatLng(value[0], value[1]);
+                            fingerprinting.updateMarker(markerId: MarkerId('${currentLatLng.latitude},${currentLatLng.longitude}'), position: currentLatLng);
+                          }
+                        });
+                      });
+                      setState(() {
+                        _isbeaconLogging=true;
+                      });
+                    }
+                    else{
+                      _bleManager.stopScanning();
+                      wsocket.disconnect();
+                      _messageTimer!.cancel();
+                      setState(() {
+                        _isbeaconLogging=false;
+                      });
+                    }
+                },child: Icon(CupertinoIcons.antenna_radiowaves_left_right,size: 30,fill:0.4,),):Container(),
+                 SizedBox(height: 20,),
             //     SizedBox(height: 25,),
             //     FloatingActionButton(
             //       backgroundColor: Colors.white,
@@ -262,7 +372,30 @@ class _googleMapState extends State<googleMap> {
               ],
             ),
           ),
-          SafeArea(child: fingerprinting.FingerPrintingPannel.getPanelWidget(context))
+          SafeArea(child: fingerprinting.FingerPrintingPannel.getPanelWidget(context)),
+          (!isLoading)? Container(
+            height: screenHeight,
+            width: screenWidth,
+            color: Colors.white.withOpacity(0.8),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                lott.Lottie.asset(
+                  'assets/loding_animation.json', // Path to your Lottie animation
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 56, right: 56),
+                  child: LinearProgressIndicator(
+                    value: _progressValue,
+                    backgroundColor: Colors.grey,
+                    valueColor:
+                    AlwaysStoppedAnimation<Color>(Colors.red),
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  ),
+                )
+              ],
+            ),
+          ):Container(),
         ],
       ),
     );

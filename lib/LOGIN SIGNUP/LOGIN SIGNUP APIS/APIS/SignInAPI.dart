@@ -36,6 +36,7 @@ class SignInAPI{
         ss.refreshToken = responseBody["refreshToken"];
         ss.payload?.userId = responseBody["payload"]["userId"];
         ss.payload?.roles = responseBody["payload"]["roles"];
+        print("data we saved:${responseBody}");
         await prefs.saveMap("signin", responseBody);
         return ss;
       } catch (e) {

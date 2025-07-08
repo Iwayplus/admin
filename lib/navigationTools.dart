@@ -38,9 +38,7 @@ class tools {
       0,
       0,
     ];
-
     // {"coordinates" : patchDataApi().fetchedPatchData!.patchData!.coordinates! } ;
-
     List<Map<String, double>> ref = [
       {
         "lat": double.parse(Data.patchData!.coordinates![2].globalRef!.lat!),

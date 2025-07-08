@@ -15,7 +15,7 @@ class waypointapi {
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
     accessToken = await prefs.getMap("signin")!["accessToken"];
     final Map<String, dynamic> data = {
-      "building_ID": "65d887a5db333f89457145f6",
+      "building_ID": id,
       "outdoor": outdoor
     };
 
@@ -45,9 +45,7 @@ class waypointapi {
         groupedMap.putIfAbsent(key, () => []);
         groupedMap[key]!.add(item);
       }
-
       print("groupedMap:${groupedMap}");
-
       return groupedMap;
     } else if (response.statusCode == 403) {
       print("WAYPOINT DATA FROM API IN 403");
