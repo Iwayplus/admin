@@ -16,13 +16,13 @@ class PatchController{
     _polygons = value;
   }
 
-  Future<void> createPatch() async {
-    data ??= await patchAPI().fetchPatchData(buildingAllApi.selectedBuildingID);
+  Future<void> createPatch(String bid) async {
+    print("buildingAllApi.selectedBuildingID:${buildingAllApi.selectedBuildingID}");
+    data ??= await patchAPI().fetchPatchData(bid);
     if (data!.patchData!.coordinates!.isNotEmpty) {
       List<LatLng> polygonPoints = [];
       double latcenterofmap = 0.0;
       double lngcenterofmap = 0.0;
-
       for (int i = 0; i < 4; i++) {
         latcenterofmap = latcenterofmap +
             double.parse(data!.patchData!.coordinates![i].globalRef!.lat!);

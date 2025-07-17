@@ -40,8 +40,8 @@ class PolygonController{
     _floor = value;
   }
 
-  Future<void> renderRooms(int fl, patchDataModel? patchData) async {
-    data ??= await PolyLineApi().fetchPolyData(buildingAllApi.selectedBuildingID);
+  Future<void> renderRooms(int fl, patchDataModel? patchData,String bid) async {
+    data ??= await PolyLineApi().fetchPolyData(bid);
     polygons.clear();
     polylines.clear();
      floor = fl;

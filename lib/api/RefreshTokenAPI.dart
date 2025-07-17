@@ -6,7 +6,7 @@ import '../SharedPreferenceHelper.dart';
 
 class RefreshTokenAPI {
 
-  static String baseUrl = kDebugMode? "https://dev.iwayplus.in/api/refreshToken?API_KEY=be349f00-b6cb-11ee-b352-d74b1ab1edff" : "https://dev.iwayplus.in/api/refreshToken?API_KEY=be349f00-b6cb-11ee-b352-d74b1ab1edff";
+  static String baseUrl = kDebugMode? "https://dev.iwayplus.in/api/refreshToken?API_KEY=be349f00-b6cb-11ee-b352-d74b1ab1edff" : "https://maps.iwayplus.in/api/refreshToken?API_KEY=be349f00-b6cb-11ee-b352-d74b1ab1edff";
 
   static Future<String> refresh() async {
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();

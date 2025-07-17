@@ -6,7 +6,7 @@ class AppConfig {
       return 'https://dev.iwayplus.in';
     } else {
 
-      return 'https://dev.iwayplus.in';
+      return 'https://maps.iwayplus.in';
     }
   }
   static String get xaccesstoken {

@@ -23,6 +23,7 @@ import 'api/buildingAllApi.dart';
 import 'dart:ui' as ui;
 import 'dart:typed_data';
 import 'api/fingerPrintGet.dart';
+import 'beaconBottomPanel.dart';
 import 'beaconController.dart';
 import 'fingerprinting/fingerprinting.dart';
 import 'navigationTools.dart';
@@ -30,7 +31,8 @@ import 'package:lottie/lottie.dart' as lott;
 
 class googleMap extends StatefulWidget {
   final String fromPage;
-  const googleMap({super.key, required this.fromPage});
+  final String bid;
+  const googleMap({super.key, required this.fromPage, required this.bid});
 
   @override
   State<googleMap> createState() => _googleMapState();
@@ -64,6 +66,8 @@ class _googleMapState extends State<googleMap> {
     fingerprinting.updateMarkers = updateMarkers;
     checkPermissions();
     fetchWayPoints();
+getUser();
+    setState((){});
   }
 
   void checkPermissions() async {
@@ -71,6 +75,15 @@ class _googleMapState extends State<googleMap> {
     await requestBluetoothConnectPermission();
     //  await requestActivityPermission();
   }
+  String user='';
+  Future<void> getUser() async {
+    SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
+    print("useriddvf:${user} ${await prefs.getMap("signin")!["payload"]["userId"]}");
+    user = await prefs.getMap("signin")!["payload"]["userId"];
+    wsocket.message["userId"]=user;
+  }
+
+
 
   Future<void> requestBluetoothConnectPermission() async {
     final PermissionStatus permissionStatus = await Permission.bluetoothScan.request();
@@ -99,7 +112,7 @@ class _googleMapState extends State<googleMap> {
 
   fetchWayPoints() async {
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
-    var waypointData = await waypointapi().fetchwaypoint(buildingAllApi.selectedBuildingID);
+    var waypointData = await waypointapi().fetchwaypoint(widget.bid);
     PolygonController.waypoint=waypointData as Map<String, List<PathModel>>;
     wsocket.message["userId"] = await prefs.getMap("signin")!["userId"];
      print("generateSampledPoints:${Point2D.generateSampledPointsFromWaypointGraph(PolygonController.waypoint)}");
@@ -115,14 +128,12 @@ class _googleMapState extends State<googleMap> {
     );
   }
 
-  Future<void> createRooms() async {
-
-    buildingAllApi buildingController = buildingAllApi();
-    await buildingController.fetchBuildingAllData();
-    await patchController.createPatch();
+  Future<void> createRooms(String bid) async {
+    print("selected building id:${buildingAllApi.selectedBuildingID}");
+    await patchController.createPatch(bid);
     fitPolygonInScreen(patchController.polygons.first);
-    await polygonController.renderRooms(0, patchController.data);
-    await beaconController.getBeacons();
+    await polygonController.renderRooms(0, patchController.data,bid);
+    await beaconController.getBeacons(bid);
 
     setState(() {
       isLoading=true;
@@ -130,7 +141,6 @@ class _googleMapState extends State<googleMap> {
   }
 
   void fitPolygonInScreen(Polygon polygon) {
-
     List<LatLng> getPolygonPoints(Polygon polygon) {
       List<LatLng> polygonPoints = [];
       for (var point in polygon.points) {
@@ -169,18 +179,18 @@ class _googleMapState extends State<googleMap> {
       return;
     });
   }
-  
   void updateMarkers(){
     print("updating");
     setState(() {});
   }
-
   BLEManager _bleManager=BLEManager();
   Color buttonColor=Colors.red;
   String nearesPoint="";
   Timer? _strtTimer;
   bool _isbeaconLogging=false;
   double _progressValue = 0.0;
+  int totalBeacons=0;
+  int scannedBeacons=0;
   void _updateProgress() {
     const onsec = const Duration(seconds: 1);
     Timer.periodic(onsec, (Timer t) {
@@ -210,6 +220,7 @@ class _googleMapState extends State<googleMap> {
     }
   }
   Timer? _messageTimer;
+  Set<String> scannedBeaconIds = {};
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
@@ -217,13 +228,15 @@ class _googleMapState extends State<googleMap> {
     return Scaffold(
       body: Stack(
         children: [
+
           GoogleMap(
             initialCameraPosition: _initialCameraPosition,
             onMapCreated: (controller) {
               _googleMapController = controller;
-              _updateProgress();
-              createRooms();
+              createRooms(widget.bid);
               goToUser();
+              _updateProgress();
+
             },
             zoomControlsEnabled: false,
             polygons: polygonController.polygons.union(patchController.polygons),
@@ -264,9 +277,12 @@ class _googleMapState extends State<googleMap> {
                         ),
                         backgroundColor: Colors.white,
                         onTap: () {
+                          totalBeacons=0;
+                          scannedBeacons=0;
+                          scannedBeaconIds.clear();
                           fingerprinting.disableFingerprinting();
                           setState(() {
-                            polygonController.renderRooms(revfloorList[i], patchController.data);
+                            polygonController.renderRooms(revfloorList[i], patchController.data,widget.bid);
                           });
                         },
                       );
@@ -309,12 +325,13 @@ class _googleMapState extends State<googleMap> {
                   backgroundColor:(!_isbeaconLogging)? Colors.green:Colors.red,
                   onPressed: ()async{
                     if(!_isbeaconLogging){
-                      wsocket.message["AppInitialization"]["BID"]=buildingAllApi.selectedBuildingID;
-                      wsocket.message["AppInitialization"]["buildingName"]=buildingAllApi.selectedVenue;
+                      print("buildingAllApi.selectedVenue ${buildingAllApi.selectedVenue} ${buildingAllApi.selectedBuildingID}");
+                      getUser();
                       _messageTimer=Timer.periodic(Duration(seconds: 5),(timer){
                         wsocket.sendmessg();
                       });
-                      fingerprinting.addBeaconMarkers(beaconController.apibeaconmap,patchController.data,polygonController.floor).then((_){
+                      fingerprinting.addBeaconMarkers(beaconController.apibeaconmap,patchController.data,polygonController.floor).then((value){
+                        totalBeacons=value;
                         _bleManager.startScanning(bufferSize: 5, streamFrequency: 5);
                       });
                       _bleManager.bufferedDeviceStream.listen((device){
@@ -323,14 +340,30 @@ class _googleMapState extends State<googleMap> {
                               .map((val) => int.tryParse(val.toString()))
                               .whereType<int>() // filters out nulls
                               .toList();
-                          if( beaconController.apibeaconmap!.containsKey(deviceName) && beaconController.apibeaconmap![deviceName]!.floor==polygonController.floor)
-                          {
+                          if (beaconController.apibeaconmap!.containsKey(deviceName) &&
+                              beaconController.apibeaconmap![deviceName]!.floor == polygonController.floor) {
+
                             final beaconItem = beaconController.apibeaconmap![deviceName];
+
                             List<double> value = tools.localtoglobal(
-                                beaconItem!.coordinateX!, beaconItem.coordinateY!, patchController.data);
+                              beaconItem!.coordinateX!,
+                              beaconItem.coordinateY!,
+                              patchController.data,
+                            );
                             LatLng currentLatLng = LatLng(value[0], value[1]);
-                            fingerprinting.updateMarker(markerId: MarkerId('${currentLatLng.latitude},${currentLatLng.longitude}'), position: currentLatLng);
+                            String beaconKey = '${currentLatLng.latitude},${currentLatLng.longitude}';
+                            // Only count if this beacon hasn't already been scanned
+                            if (!scannedBeaconIds.contains(beaconKey)) {
+                              scannedBeaconIds.add(beaconKey);     // track the beacon
+                              scannedBeacons++;                    // count it once
+                            }
+                            // Update marker regardless (or conditionally if you want)
+                            fingerprinting.updateMarker(
+                              markerId: MarkerId(beaconKey),
+                              position: currentLatLng,
+                            );
                           }
+
                         });
                       });
                       setState(() {
@@ -368,7 +401,7 @@ class _googleMapState extends State<googleMap> {
             //   });
             // });
             //
-            //       },child: Icon(Icons.person),)
+            // },child: Icon(Icons.person),)
               ],
             ),
           ),
@@ -396,6 +429,12 @@ class _googleMapState extends State<googleMap> {
               ],
             ),
           ):Container(),
+      Align(
+        alignment: Alignment.bottomCenter,
+        child: BeaconBottomPanel(
+          totalBeacons: totalBeacons,
+          scannedBeacons: scannedBeacons,
+        )),
         ],
       ),
     );

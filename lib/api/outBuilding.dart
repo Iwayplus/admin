@@ -8,7 +8,7 @@ import 'RefreshTokenAPI.dart';
 
 
 class outBuilding {
-  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/secured/outdoor" : "https://dev.iwayplus.in/secured/outdoor";
+  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/secured/outdoor" : "https://maps.iwayplus.in/secured/outdoor";
   String accessToken = "";
 
   Future<outdoormodel?> outbuilding(List<String> ids) async {

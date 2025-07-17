@@ -20,8 +20,8 @@ class BeaconController{
     _beaconData = value;
   }
 
-  Future<void> getBeacons() async {
-    beaconData = await beaconapi().fetchBeaconData(buildingAllApi.selectedBuildingID);
+  Future<void> getBeacons(String bid) async {
+    beaconData = await beaconapi().fetchBeaconData(bid);
     apibeaconmap ??={};
     for (var beacon in beaconData!) {
       if (beacon.name != null) {

@@ -16,6 +16,14 @@ class HelperClass {
     );
   }
 
+  static String truncateString(String input, int maxLength) {
+    if (input.length <= maxLength) {
+      return input;
+    } else {
+      return input.substring(0, maxLength - 2) + '..';
+    }
+  }
+
   BluetoothDevice parseDeviceDetails(String response) {
     final deviceRegex = RegExp(
       r'Device Name: (.+?)\n.*?Address: (.+?)\n.*?RSSI: (-?\d+).*?Raw Data: ([0-9A-Fa-f\-]+)',

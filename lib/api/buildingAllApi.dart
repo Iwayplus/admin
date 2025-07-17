@@ -12,25 +12,32 @@ import '../navigationTools.dart';
 import 'RefreshTokenAPI.dart';
 
 class buildingAllApi {
-  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/secured/building/all" : "https://dev.iwayplus.in/secured/building/all";
+  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/secured/building/all" : "https://maps.iwayplus.in/secured/building/all";
   String accessToken = "";
   static String selectedBuildingID="";
   static String selectedBuildingName="";
   static String selectedVenue="";
   static Map<String,g.LatLng> allBuildingID = {};
-  
   static String outdoorID = "";
+
+  static void setSelectedBuildingID(String value)async{
+    print("inside inside set id $value");
+    selectedBuildingID = value;
+    return;
+  }
   Future<List<buildingAll>> fetchBuildingAllData() async {
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
+    accessToken=await prefs.getMap("signin")!["accessToken"];
     final response = await http.post(
       Uri.parse(baseUrl),
-      headers: {
+      headers:{
         'Content-Type': 'application/json',
         'x-access-token': accessToken
       },
     );
     if (response.statusCode == 200) {
       List<dynamic> responseBody = json.decode(response.body);
+      print("reponsee:${responseBody}");
       List<buildingAll> buildingList = responseBody
           .where((data) => data['initialBuildingName'] != null)
           .map((data) => buildingAll.fromJson(data))
@@ -52,11 +59,11 @@ class buildingAllApi {
     Position userPosition = await gps.getCurrentCoordinates();
     print("userposition:${userPosition.latitude} ${userPosition.longitude}");
     double d = double.infinity;
-    for (var building in buildings) {
+    for (var building in buildings){
       print("${building.buildingName}   <>    ${building.coordinates}");
       double distance = tools.calculateAerialDist(userPosition.latitude, userPosition.longitude, building.coordinates![0], building.coordinates![1]);
       if(distance<d){
-        print("selecting building ${building.buildingName}");
+        print("selecting building ${building.buildingName} ${selectedVenue}");
         selectedBuildingID = building.sId!;
         selectedBuildingName = building.buildingName!;
         selectedVenue = building.venueName!;

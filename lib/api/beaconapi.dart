@@ -9,13 +9,12 @@ import 'RefreshTokenAPI.dart';
 
 
 class beaconapi {
-  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/secured/building/beacons" : "https://dev.iwayplus.in/secured/building/beacons";
+  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/secured/building/beacons" : "https://maps.iwayplus.in/secured/building/beacons";
   String accessToken = "";
 
   Future<List<beacon>> fetchBeaconData(String id) async {
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
     accessToken = await prefs.getMap("signin")!["accessToken"];
-
     print("builidng id for beacon:${id}");
 
     final Map<String, dynamic> data = {
@@ -26,7 +25,7 @@ class beaconapi {
       body: json.encode(data),
       headers: {
         'Content-Type': 'application/json',
-        'x-access-token': await prefs.getMap("signin")!["accessToken"],
+        'x-access-token': accessToken,
       },
     );
 

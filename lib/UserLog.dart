@@ -6,7 +6,7 @@ class wsocket {
   static String appId = "";
   static bool isConnected = false;
 
-  static final io.Socket channel = io.io('${AppConfig.baseUrl}', <String, dynamic>{
+  static final io.Socket channel = io.io('https://dev.iwayplus.in', <String, dynamic>{
     'transports': ['websocket'],
     'autoConnect': false,
   });
@@ -32,10 +32,7 @@ class wsocket {
     "AppInitialization": {
       "BID": "",
       "buildingName": "",
-      "bleScanResults": {
-        "IW122": 0,
-        "IW123": 0,
-      },
+      "bleScanResults": {},
       "nearByDevices": {},
       "localizedOn": ""
     },

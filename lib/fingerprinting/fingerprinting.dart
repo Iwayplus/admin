@@ -174,7 +174,7 @@ class Fingerprinting{
     _updateMarkers();
   }
 
-  Future<void> addBeaconMarkers(
+  Future<int> addBeaconMarkers(
       Map<String, beacon>? apibeaconmap,
       patchDataModel? patchData,
       int targetFloor,
@@ -187,7 +187,10 @@ class Fingerprinting{
     var dotIcon = await _svgToBitmapDescriptor('assets/dot.svg', Size(40, 40));
     var exitIcon = await _svgToBitmapDescriptor('assets/exitservice.svg', Size(40, 40));
 
-    print("markers added for ${apibeaconmap}");
+    print("markers added for $apibeaconmap");
+
+    int beaconCount = 0; // Counter for target floor beacons
+
     if (apibeaconmap != null && apibeaconmap.isNotEmpty) {
       for (var entry in apibeaconmap.entries) {
         final beaconItem = entry.value;
@@ -196,6 +199,8 @@ class Fingerprinting{
             beaconItem.coordinateX != null &&
             beaconItem.coordinateY != null) {
 
+          beaconCount++; // Increment for each valid beacon
+
           List<double> value = tools.localtoglobal(
             beaconItem.coordinateX!,
             beaconItem.coordinateY!,
@@ -203,7 +208,7 @@ class Fingerprinting{
           );
 
           LatLng currentLatLng = LatLng(value[0], value[1]);
-          // Check if beacon ID (entry.key) matches any stored marker
+
           bool isSaved = savedMarkerIds.contains('${currentLatLng.latitude},${currentLatLng.longitude}');
           _dotMarkers.add(
             Marker(
@@ -220,7 +225,10 @@ class Fingerprinting{
     }
 
     _updateMarkers();
+
+    return beaconCount; // 🔁 Return total beacons on this floor
   }
+
 
 
 

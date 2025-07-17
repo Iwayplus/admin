@@ -1,6 +1,11 @@
 import 'package:admin/map.dart';
 import 'package:flutter/material.dart';
 
+import 'API/buildingAllApi.dart';
+import 'SharedPreferenceHelper.dart';
+import 'UserLog.dart';
+import 'buildingInfoScreen.dart';
+
 class BeaconFingerprintScreen extends StatefulWidget {
   const BeaconFingerprintScreen({Key? key}) : super(key: key);
 
@@ -9,38 +14,29 @@ class BeaconFingerprintScreen extends StatefulWidget {
 }
 
 class _BeaconFingerprintScreenState extends State<BeaconFingerprintScreen> {
-  String _statusText = 'Ready - Select an option';
-  bool _isLoading = false;
+  bool _isLoading = true;
 
-  void _handleBeaconLog() async {
-    setState(() {
-      _isLoading = true;
-      _statusText = 'Beacon Log activated - Monitoring network beacons...';
-    });
 
-    // Simulate some processing time
-    await Future.delayed(const Duration(seconds: 2));
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    callBuildings();
 
-    setState(() {
-      _isLoading = false;
-      _statusText = 'Beacon Log complete - 247 beacons detected';
+
+  }
+  callBuildings() async {
+    buildingAllApi buildingController = buildingAllApi();
+    await buildingController.fetchBuildingAllData().then((value){
+      if(value.isNotEmpty){
+        setState(() {
+          _isLoading=false;
+        });
+      }
     });
   }
 
-  void _handleFingerprinting() async {
-    setState(() {
-      _isLoading = true;
-      _statusText = 'Fingerprinting initiated - Analyzing device signatures...';
-    });
 
-    // Simulate some processing time
-    await Future.delayed(const Duration(milliseconds: 2500));
-
-    setState(() {
-      _isLoading = false;
-      _statusText = 'Fingerprinting complete - Unique device profile generated';
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,7 +87,8 @@ class _BeaconFingerprintScreenState extends State<BeaconFingerprintScreen> {
                       ),
                     ],
                   ),
-                  child: Column(
+                  child:(!_isLoading)?
+                  Column(
                     children: [
                       // Beacon Log Button
                       SizedBox(
@@ -101,7 +98,7 @@ class _BeaconFingerprintScreenState extends State<BeaconFingerprintScreen> {
                           onPressed:(){
                             print("got inside here");
                             Navigator.push(context, MaterialPageRoute<void>(
-                              builder: (BuildContext context) => googleMap(fromPage: "BEACON",)
+                              builder: (BuildContext context) => BuildingInfoScreen(frmMainScreen: "BEACON",)
                             ),);
                           },
                           style: ElevatedButton.styleFrom(
@@ -149,7 +146,7 @@ class _BeaconFingerprintScreenState extends State<BeaconFingerprintScreen> {
                         child: ElevatedButton(
                           onPressed:(){
                             Navigator.push(context, MaterialPageRoute<void>(
-                                builder: (BuildContext context) => googleMap(fromPage: "FINGERPRINTING",)
+                                builder: (BuildContext context) => BuildingInfoScreen(frmMainScreen: "FINGERPRINTING",)
                             ),);
                           },
                           style: ElevatedButton.styleFrom(
@@ -189,7 +186,7 @@ class _BeaconFingerprintScreenState extends State<BeaconFingerprintScreen> {
                         ),
                       ),
                     ],
-                  ),
+                  ):Center(child: CircularProgressIndicator(),),
                 ),
                 const SizedBox(height: 30),
 
