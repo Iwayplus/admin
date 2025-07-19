@@ -218,23 +218,11 @@ bool isLoading=false;
                           overflow: TextOverflow.ellipsis, // Display '...' when overflowed
                         ),
                       ),
-                      (dd!=null && dd!.buildings!=null && dd!.campus!=null)? Container(
-                        child: InkWell(
-                          onTap: (){
-                            buildingAllApi.setSelectedBuildingID(dd!.campus!.sId!);
-                            buildingAllApi.selectedBuildingID=dd!.campus!.sId!;
-                            wsocket.message["AppInitialization"]["BID"]=dd!.campus!.sId;
-                            wsocket.message["AppInitialization"]["buildingName"]=dd!.campus!.venueName;
-                            setState((){});
-                            print("allbuildingapi");
-                            print("${buildingAllApi.selectedBuildingID} ${dd!.campus!.sId}");
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => googleMap(fromPage: widget.frmMainScreen!, bid: dd!.campus!.sId.toString(),),
-                              ),
-                            );
-                          },
+                      (dd!=null && dd!.buildings!=null && dd!.campus!=null)?
+
+                      Container(
+                        child:
+                        InkWell(
                           child: Container(
                             decoration: BoxDecoration(
                                 color:  Colors.white,
@@ -243,159 +231,7 @@ bool isLoading=false;
                                 ),
                                 borderRadius: BorderRadius.all(Radius.circular(8))
                             ),
-                            child: Column(
-                              children: [
-                                Container(
-                                  width: 208,
-                                  height: 117,
-                                  padding: EdgeInsets.all(5),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8),bottomLeft:Radius.circular(8),bottomRight: Radius.circular(8) ),
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8),bottomLeft:Radius.circular(8),bottomRight: Radius.circular(8)),
-                                    child: Image.network(
-                                      // "https://maps.iwayplus.in/uploads/${widget.imageURL}",
-                                      "https://maps.iwayplus.in/uploads/${dd!.campus!.venuePhoto}",
-                                      // You can replace the placeholder image URL with your default image URL
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return Image.asset(
-                                          'assets/default-image.jpg', // Replace with the path to your default image asset
-                                          fit: BoxFit.fill,
-                                        );
-                                      },
-                                      fit: BoxFit.fill,
-                                    ),
-                                  ),
-                                ),
-                                Container(
-                                    alignment: Alignment.topLeft,
-                                    margin: EdgeInsets.only(top: 10,left: 8),
-                                    child: Text(
-                                      HelperClass.truncateString(dd!.campus!.buildingName!,20),
-                                      style: const TextStyle(
-                                        fontFamily: "Roboto",
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w400,
-                                        color: Color(0xff0c141c),
-                                        height: 25/16,
-                                      ),
-                                      textAlign: TextAlign.left,
-                                    )
-                                ),
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                        margin: EdgeInsets.only(left: 8,top: 10),
-                                        child: Text(
-                                          dd!.campus!.venueCategory??"",
-                                          style: const TextStyle(
-                                            fontFamily: "Roboto",
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w400,
-                                            color: Color(0xff4a4545),
-                                            height: 20/14,
-                                          ),
-                                          textAlign: TextAlign.left,
-                                        )
-                                    ),
-                                    Spacer(),
-                                  ],
-                                ),
-                                // SizedBox(width: screenWidth/3.2,),
-                              ],
-                            ),
                           ),
-                          // Container(
-                          //   decoration: BoxDecoration(
-                          //       border: Border.all(
-                          //         color: Color(0xffEBEBEB),
-                          //       ),
-                          //       borderRadius: BorderRadius.all(Radius.circular(8))
-                          //   ),
-                          //   child: Column(
-                          //     children: [
-                          //       Container(
-                          //         width: 188,
-                          //         height: 117,
-                          //         padding: EdgeInsets.all(5),
-                          //         decoration: BoxDecoration(
-                          //           borderRadius: BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8),bottomLeft:Radius.circular(8),bottomRight: Radius.circular(8) ),
-                          //         ),
-                          //         child: ClipRRect(
-                          //           borderRadius: BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8),bottomLeft:Radius.circular(8),bottomRight: Radius.circular(8)),
-                          //           child: Image.network(
-                          //             // "https://maps.iwayplus.in/uploads/${widget.imageURL}",
-                          //             "https://maps.iwayplus.in/uploads/${currentData.venuePhoto}",
-                          //             // You can replace the placeholder image URL with your default image URL
-                          //             errorBuilder: (context, error, stackTrace) {
-                          //               return Image.asset(
-                          //                 'assets/default-image.jpg', // Replace with the path to your default image asset
-                          //                 fit: BoxFit.fill,
-                          //               );
-                          //             },
-                          //             fit: BoxFit.fill,
-                          //           ),
-                          //         ),
-                          //       ),
-                          //       Container(
-                          //           alignment: Alignment.topLeft,
-                          //           margin: EdgeInsets.only(top: 0,left: 8),
-                          //           child: Text(
-                          //             HelperClass.truncateString(currentData.buildingName!,20),
-                          //             style: const TextStyle(
-                          //               fontFamily: "Roboto",
-                          //               fontSize: 16,
-                          //               fontWeight: FontWeight.w400,
-                          //               color: Color(0xff0c141c),
-                          //               height: 25/16,
-                          //             ),
-                          //             textAlign: TextAlign.left,
-                          //           )
-                          //       ),
-                          //       Row(
-                          //         crossAxisAlignment: CrossAxisAlignment.start,
-                          //         children: [
-                          //           Container(
-                          //               margin: EdgeInsets.only(left: 8,top: 10),
-                          //               child: Text(
-                          //                 currentData.venueCategory??"",
-                          //                 style: const TextStyle(
-                          //                   fontFamily: "Roboto",
-                          //                   fontSize: 14,
-                          //                   fontWeight: FontWeight.w400,
-                          //                   color: Color(0xff4a4545),
-                          //                   height: 20/14,
-                          //                 ),
-                          //                 textAlign: TextAlign.left,
-                          //               )
-                          //           ),
-                          //           Spacer(),
-                          //           IconButton(
-                          //             icon: Semantics(
-                          //               label: 'Favourite',
-                          //               child: Icon(
-                          //                 isFavourite? Icons.favorite:
-                          //                 Icons.favorite_border,size: 24,color: Colors.red,),
-                          //             ),
-                          //             onPressed: () async{
-                          //               if(isFavourite){
-                          //                 await value.delete(currentData.buildingName);
-                          //               }else {
-                          //                 await value.put(
-                          //                     currentData.buildingName,
-                          //                     currentData.buildingName);
-                          //               }// Add your favorite button onPressed logic here
-                          //               log('Favouties Database Size ${value.length}');
-                          //             },
-                          //           )
-                          //         ],
-                          //       ),
-                          //     ],
-                          //   ),
-                          // ),
-
                         ),
                       ):Container()
                     ],
@@ -415,7 +251,7 @@ bool isLoading=false;
                     textAlign: TextAlign.left,
                   ),
                 ),
-                (isLoading)?
+                (isLoading && dd!=null)?
                 Container(
                   height: 225,
                   child:(dd!=null || dd!.buildings!=null)?
@@ -429,7 +265,6 @@ bool isLoading=false;
                           child:
                           ListTile(
                             onTap: (){
-                              buildingAllApi.setSelectedBuildingID(currentData.sId);
                               buildingAllApi.selectedBuildingID=currentData.sId;
                               wsocket.message["AppInitialization"]["BID"]=dd!.buildings![index].sId;
                               wsocket.message["AppInitialization"]["buildingName"]=dd!.buildings![index].venueName;

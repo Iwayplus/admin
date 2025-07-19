@@ -342,8 +342,8 @@ class PolygonController{
     return;
   }
 
-  Future<Map<String, Set<Point2D>>> fetchWayPoints() async {
-    var waypointData = await waypointapi().fetchwaypoint(buildingAllApi.selectedBuildingID);
+  Future<Map<String, Set<Point2D>>> fetchWayPoints(String bid) async {
+    var waypointData = await waypointapi().fetchwaypoint(bid);
     PolygonController.waypoint=waypointData as Map<String, List<PathModel>>;
     print("waypoint:${PolygonController.waypoint['0']![0].pathNetwork}");
     print("generateSampledPoints:${Point2D.generateSampledPointsFromWaypointGraph(PolygonController.waypoint)}");

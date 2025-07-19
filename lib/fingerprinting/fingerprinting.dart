@@ -95,24 +95,21 @@ class Fingerprinting{
     _dotMarkers.add(updatedMarker);
     _updateMarkers();
   }
-
-
-
   set context(BuildContext value) {
     _context = value;
   }
   Map<String,dynamic> preProcessedData={};
   Map<String,dynamic> realTimeData={};
-  Future<void> enableFingerprinting(PatchController patchController, PolygonController polygonController, BeaconController beaconController) async {
+  Future<void> enableFingerprinting(PatchController patchController, PolygonController polygonController, BeaconController beaconController,String bid) async {
     print("inside enabling");
     _dotMarkers.clear();
     floor = polygonController.floor;
     apibeaconmap = beaconController.apibeaconmap;
     print("floor selected:${floor}");
-    var fingerPrintData = await fingerPrintingGetApi().Finger_Printing_GET_API(buildingAllApi.selectedBuildingID,floor.toString());
+    var fingerPrintData = await fingerPrintingGetApi().Finger_Printing_GET_API(bid,floor.toString());
     // print("fingerprint data:${fingerPrintData!.fingerPrintData}");
-    // preProcessedData=computeBeaconStats(fingerPrintData!.fingerPrintData);
-    Map<String,Set<Point2D>> interpolatedWaypoints=await polygonController.fetchWayPoints();
+    preProcessedData=computeBeaconStats(fingerPrintData!.data!);
+    Map<String,Set<Point2D>> interpolatedWaypoints=await polygonController.fetchWayPoints(bid);
    // List<poly.Nodes> waypoints = await polygonController.extractWaypoints();
     interpolatedWaypoints.forEach((interfloor, points) async {
       if(interfloor==floor.toString()){
@@ -309,79 +306,88 @@ class Fingerprinting{
   void clearMarkers(){
     _Markers.clear();
   }
-  // Map<String, dynamic> computeBeaconStats(Map<String, List<fp.SensorData>> locationSensorData) {
-  //   final result = <String, dynamic>{};
-  //
-  //   locationSensorData.forEach((locationKey, sensorDataList) {
-  //     final beaconMap = <String, List<int>>{};
-  //     final weakOutlierMap = <String, List<Map<String, dynamic>>>{};
-  //     final deviationOutlierMap = <String, List<Map<String, dynamic>>>{};
-  //
-  //     // Step 1: Collect all valid RSSI readings
-  //     for (var data in sensorDataList) {
-  //       for (var beacon in data.beacons ?? []) {
-  //         final macId = beacon.beaconMacId;
-  //         final rssi = beacon.beaconRssi;
-  //
-  //         if (macId == null || rssi == null) continue;
-  //
-  //         if (rssi >= -95) {
-  //           beaconMap.putIfAbsent(macId, () => []).add(rssi);
-  //         } else {
-  //           weakOutlierMap.putIfAbsent(macId, () => []).add({
-  //             'value': rssi,
-  //             'outlierType': 'weak_signal',
-  //           });
-  //         }
-  //       }
-  //     }
-  //
-  //     // Step 2: Compute stats + deviation outliers
-  //     final beaconStats = beaconMap.map((macId, rssiList) {
-  //       final mean = rssiList.reduce((a, b) => a + b) / rssiList.length;
-  //       final variance = rssiList.fold(0.0, (sum, val) => sum + pow(val - mean, 2)) / rssiList.length;
-  //       final stdDev = sqrt(variance);
-  //
-  //       final cleanedRssiList = <int>[];
-  //       for (var rssi in rssiList) {
-  //         if (stdDev == 0 || (rssi >= mean - 2 * stdDev && rssi <= mean + 2 * stdDev)) {
-  //           cleanedRssiList.add(rssi);
-  //         } else {
-  //           deviationOutlierMap.putIfAbsent(macId, () => []).add({
-  //             'value': rssi,
-  //             'outlierType': 'deviation_outlier',
-  //           });
-  //         }
-  //       }
-  //
-  //       // Recalculate mean and std dev after removing deviation outliers
-  //       final finalMean = cleanedRssiList.isNotEmpty
-  //           ? cleanedRssiList.reduce((a, b) => a + b) / cleanedRssiList.length
-  //           : 0.0;
-  //       final finalVariance = cleanedRssiList.isNotEmpty
-  //           ? cleanedRssiList.fold(0.0, (sum, val) => sum + pow(val - finalMean, 2)) / cleanedRssiList.length
-  //           : 0.0;
-  //       final finalStdDev = sqrt(finalVariance);
-  //
-  //       final allOutliers = [
-  //         ...?weakOutlierMap[macId],
-  //         ...?deviationOutlierMap[macId],
-  //       ];
-  //
-  //       return MapEntry(macId, {
-  //         'mean': finalMean,
-  //         'stdDev': finalStdDev,
-  //         'outliers': allOutliers,
-  //       });
-  //     });
-  //
-  //     result[locationKey] = {
-  //       'beacons': beaconStats,
-  //     };
-  //   });
-  //
-  //   return result;
-  // }
+  Map<String, dynamic> computeBeaconStats(List<fp.Data> newDataModel) {
+    final result = <String, dynamic>{};
+
+    for (var locationEntry in newDataModel) {
+      final locationKey = locationEntry.location;
+      final innerDataList = locationEntry.data as List<dynamic>;
+
+      final beaconMap = <String, List<int>>{};
+      final weakOutlierMap = <String, List<Map<String, dynamic>>>{};
+      final deviationOutlierMap = <String, List<Map<String, dynamic>>>{};
+
+      // Step 1: Collect all valid RSSI readings
+      for (var dataItem in innerDataList) {
+        final beacons = dataItem.beacons ?? [];
+
+        for (var beacon in beacons) {
+          final macId = beacon.beaconMacId;
+          final rssiList = beacon.beaconRssi ?? [];
+
+          if (macId == null || rssiList.isEmpty) continue;
+
+          for (var rssi in rssiList) {
+            if (rssi >= -90) {
+              beaconMap.putIfAbsent(macId, () => []).add(rssi);
+            } else {
+              weakOutlierMap.putIfAbsent(macId, () => []).add({
+                'value': rssi,
+                'outlierType': 'weak_signal',
+              });
+            }
+          }
+        }
+      }
+
+      // Step 2: Compute stats + deviation outliers
+      final beaconStats = beaconMap.map((macId, rssiList) {
+        final mean = rssiList.reduce((a, b) => a + b) / rssiList.length;
+        final variance = rssiList.fold(0.0, (sum, val) => sum + pow(val - mean, 2)) / rssiList.length;
+        final stdDev = sqrt(variance);
+
+        final cleanedRssiList = <int>[];
+        for (var rssi in rssiList) {
+          if (stdDev == 0 || (rssi >= mean - 2 * stdDev && rssi <= mean + 2 * stdDev)) {
+            cleanedRssiList.add(rssi);
+          } else {
+            deviationOutlierMap.putIfAbsent(macId, () => []).add({
+              'value': rssi,
+              'outlierType': 'deviation_outlier',
+            });
+          }
+        }
+
+        final finalMean = cleanedRssiList.isNotEmpty
+            ? cleanedRssiList.reduce((a, b) => a + b) / cleanedRssiList.length
+            : 0.0;
+
+        final finalVariance = cleanedRssiList.isNotEmpty
+            ? cleanedRssiList.fold(0.0, (sum, val) => sum + pow(val - finalMean, 2)) / cleanedRssiList.length
+            : 0.0;
+
+        final finalStdDev = sqrt(finalVariance);
+
+        final allOutliers = [
+          ...?weakOutlierMap[macId],
+          ...?deviationOutlierMap[macId],
+        ];
+
+        return MapEntry(macId, {
+          'mean': finalMean,
+          'stdDev': finalStdDev,
+          'outliers': allOutliers,
+        });
+      });
+
+      result[locationKey!] = {
+        'beacons': beaconStats,
+      };
+    }
+
+    print("Processed and averaged beacon data: $result");
+    return result;
+  }
 
 
   Map<String, dynamic> computeRealtimeBeaconStats(List<SensorFingerprint> realtimeSensorData) {
@@ -395,19 +401,22 @@ class Fingerprinting{
       for (var beacon in data.beacons ?? []) {
         final macId = beacon.beaconMacId;
         final rssi = beacon.beaconRssi;
+
         if (macId == null || rssi == null) continue;
-        if (rssi >= -95) {
-          beaconMap.putIfAbsent(macId, () => []).add(rssi);
-        } else {
-          weakOutlierMap.putIfAbsent(macId, () => []).add({
-            'value': rssi,
-            'outlierType': 'weak_signal',
-          });
-        }
+
+        // print("macid: $macId, rssi: $rssi");
+
+        // ✅ Only add if this macId hasn't been added yet
+        beaconMap.putIfAbsent(macId, () => rssi);
       }
     }
+
     // Step 2: Compute stats and flag deviation outliers
-    final beaconStats = beaconMap.map((macId, rssiList) {
+    final Map<String, Map<String, dynamic>> beaconStats = {};
+
+    beaconMap.forEach((macId, rssiList) {
+      print("rssilist: $rssiList, $macId");
+
       final mean = rssiList.reduce((a, b) => a + b) / rssiList.length;
       final variance = rssiList.fold(0.0, (sum, val) => sum + pow(val - mean, 2)) / rssiList.length;
       final stdDev = sqrt(variance);
@@ -423,7 +432,6 @@ class Fingerprinting{
           });
         }
       }
-
       final finalMean = cleanedRssiList.isNotEmpty
           ? cleanedRssiList.reduce((a, b) => a + b) / cleanedRssiList.length
           : 0.0;
@@ -431,17 +439,22 @@ class Fingerprinting{
           ? cleanedRssiList.fold(0.0, (sum, val) => sum + pow(val - finalMean, 2)) / cleanedRssiList.length
           : 0.0;
       final finalStdDev = sqrt(finalVariance);
+      // ✅ Skip weak beacons
+      if (finalMean < -95) {
+        print("Skipping weak beacon $macId with mean RSSI: $finalMean");
+        return;
+      }
 
       final allOutliers = [
         ...?weakOutlierMap[macId],
         ...?deviationOutlierMap[macId],
       ];
 
-      return MapEntry(macId, {
+      beaconStats[macId] = {
         'mean': finalMean,
         'stdDev': finalStdDev,
         'outliers': allOutliers,
-      });
+      };
     });
 
     result['realtime'] = {
@@ -449,7 +462,6 @@ class Fingerprinting{
     };
 
     print("realtime data: $result");
-
     return result;
   }
 
@@ -600,10 +612,11 @@ class Fingerprinting{
   }) {
     realTimeData = computeRealtimeBeaconStats(data!.sensorFingerprint!);
     final realtimeBeacons = realTimeData['realtime']?['beacons'] as Map<String, dynamic>;
-
     // Step 1: Determine max overlapping beacons
     int maxOverlap = 0;
     final Map<String, int> locationOverlapMap = {};
+
+    print("realtime data::${realTimeData} ${preProcessedData}");
 
     preProcessedData.forEach((locationKey, data) {
       final preBeacons = data['beacons'] as Map<String, dynamic>;
@@ -620,6 +633,8 @@ class Fingerprinting{
     // Step 2: Compare cosine + distance for locations with max overlap
     String? bestLocation;
     double bestScore = -double.infinity;
+
+    print("locationOverlapMap:${locationOverlapMap}");
 
     locationOverlapMap.forEach((locationKey, overlap) {
       if (overlap == maxOverlap) {
@@ -712,7 +727,7 @@ class Fingerprinting{
             position: _markerPosition,
             onTap: (){
               print("on dot marker");
-            }
+            },
         ),
       );
       _updateMarkers();
@@ -742,7 +757,7 @@ class Fingerprinting{
 
   Future<void> collectSensorDataEverySecond() async {
     if (apibeaconmap != null) {
-      bleManager.startScanning(bufferSize: 2, streamFrequency: 1, duration: null);
+      bleManager.startScanning(bufferSize: 5, streamFrequency: 5, duration: null);
     } else {
       HelperClass.showToast("Getting beacon data!!");
     }
@@ -790,10 +805,11 @@ class Fingerprinting{
 
     /// Timer to collect and flush data every second
     List<Beacon> beacons = []; // Persistent list outside the timer
-
     timer = Timer.periodic(Duration(seconds: 1), (timer) async {
+      print("inside loop1");
       _beaconRssiBuffer.forEach((key, rssiList) {
-        print("yfyuvy${apibeaconmap != null && apibeaconmap![key] != null && rssiList.isNotEmpty}");
+        print("inside loop2 ${apibeaconmap}");
+        print("yfyuvy ${apibeaconmap != null && apibeaconmap![key] != null && rssiList.isNotEmpty}");
         if (apibeaconmap != null && apibeaconmap![key] != null && rssiList.isNotEmpty) {
           final existingIndex = beacons.indexWhere((b) => b.beaconMacId == key);
           print("existingIndex ${existingIndex} for ${key}");
@@ -837,10 +853,29 @@ class Fingerprinting{
   }
 
 
+  void checkAndAddMarker(
+      Map<String, Set<Point2D>> interpolatedWaypoints,
+      String floorKey,
+      List<double> targetPoint,
+      ){
+    final point = Point2D.fromString("71,32");
+    for (final floor in interpolatedWaypoints.keys){
+      final points = interpolatedWaypoints[floor];
+      print("Point $targetPoint found on floor ${points?.contains(point)}");
+      if (points != null && points.contains(point)){
+        print("Point $targetPoint found on floor $floor");
+        addMarker(LatLng(targetPoint[0], targetPoint[1]), ); // your function
+        return;
+      }
+    }
+  }
+
+
+
   Future<bool> stopCollectingData() async {
     timer?.cancel();
     bluetoothScanAndroidClass.stopScan();
-    BLEManager().stopScanning();
+    bleManager.stopScanning();
     //cancel beacon stream here
     return await fingerPrintingApi().Finger_Printing_API(buildingAllApi.selectedBuildingID, data!);
   }

@@ -28,7 +28,7 @@ class Data {
   String? sId;
   String? buildingID;
   String? location;
-  List<Data>? data;
+  List<Data1>? data;
   String? createdAt;
   String? updatedAt;
   int? iV;
@@ -47,9 +47,9 @@ class Data {
     buildingID = json['building_ID'];
     location = json['location'];
     if (json['data'] != null) {
-      data = <Data>[];
+      data = <Data1>[];
       json['data'].forEach((v) {
-        data!.add(new Data.fromJson(v));
+        data!.add(new Data1.fromJson(v));
       });
     }
     createdAt = json['createdAt'];

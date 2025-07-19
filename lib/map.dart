@@ -281,7 +281,7 @@ getUser();
                           scannedBeacons=0;
                           scannedBeaconIds.clear();
                           fingerprinting.disableFingerprinting();
-                          setState(() {
+                          setState((){
                             polygonController.renderRooms(revfloorList[i], patchController.data,widget.bid);
                           });
                         },
@@ -312,13 +312,36 @@ getUser();
                     onTap:(){
                       setState((){
                         print("enabling");
-                        fingerprinting.enableFingerprinting(patchController,polygonController,beaconController);
+                        fingerprinting.enableFingerprinting(patchController,polygonController,beaconController,widget.bid);
                       });
                     },
                   ),
                   ],
                   child: Icon(Icons.code_off),
                 ):Container(),
+                SizedBox(height: 20,),
+                    FloatingActionButton(onPressed: (){
+                      fingerprinting.clearMarkers();
+                      fingerprinting.collectSensorDataEverySecond();
+                      Future.delayed(Duration(seconds: 6)).then((_) async {
+                        nearesPoint=fingerprinting.findBestMatchingLocationHybrid();
+                        List<String> vals=nearesPoint.split(',');
+                        List<double> value = tools.localtoglobal(
+                         int.parse(vals[0]),
+                          int.parse(vals[1]),
+                          patchController.data,
+                        );
+                        print("nearestpoints:${vals}");
+                        fingerprinting.timer?.cancel();
+                        fingerprinting.stopCollectingRealData();
+                        Map<String,Set<Point2D>> interpolatedWaypoints=await polygonController.fetchWayPoints(widget.bid);
+                        fingerprinting.checkAndAddMarker(interpolatedWaypoints,polygonController.floor.toString(),value);
+                        setState(() {
+                          updateMarkers();
+                          nearesPoint;
+                        });
+                      });
+                    },child: Icon(Icons.account_balance),),
                 SizedBox(height: 20,),
                 (beaconController.apibeaconmap!=null && widget.fromPage!="FINGERPRINTING")?
                 FloatingActionButton(
@@ -380,28 +403,7 @@ getUser();
                     }
                 },child: Icon(CupertinoIcons.antenna_radiowaves_left_right,size: 30,fill:0.4,),):Container(),
                  SizedBox(height: 20,),
-            //     SizedBox(height: 25,),
-            //     FloatingActionButton(
-            //       backgroundColor: Colors.white,
-            //       onPressed: () async {
-            // _strtTimer=Timer.periodic(Duration(seconds: 5), (_) async {
-            //   nearesPoint=fingerprinting.findBestMatchingLocationHybrid();
-            //   List<String> vals=nearesPoint.split(',');
-            //   List<poly.Nodes> waypoints = await polygonController.extractWaypoints();
-            //   for (var point in waypoints){
-            //     if(vals[0]==point.coordx.toString() && vals[1]==point.coordy.toString())
-            //     {
-            //       fingerprinting.addMarker(LatLng(point.lat!, point.lon!));
-            //       return;
-            //     }
-            //   }
-            //   setState(() {
-            //     updateMarkers();
-            //     nearesPoint;
-            //   });
-            // });
-            //
-            // },child: Icon(Icons.person),)
+
               ],
             ),
           ),
@@ -429,12 +431,12 @@ getUser();
               ],
             ),
           ):Container(),
-      Align(
+          (beaconController.apibeaconmap!=null && widget.fromPage!="FINGERPRINTING") ?Align(
         alignment: Alignment.bottomCenter,
         child: BeaconBottomPanel(
           totalBeacons: totalBeacons,
           scannedBeacons: scannedBeacons,
-        )),
+        )):Container(),
         ],
       ),
     );

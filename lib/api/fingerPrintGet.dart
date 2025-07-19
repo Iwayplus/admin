@@ -11,6 +11,7 @@ class fingerPrintingGetApi {
   Future<FingerPrintData?> Finger_Printing_GET_API(String building_ID,String floor) async {
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
     accessToken = await prefs.getMap("signin")!["accessToken"];
+    print("buidlding id:${building_ID} ${floor}");
     final response = await http.get(
       Uri.parse(baseUrl+building_ID+"/${floor}"),
       headers: {
