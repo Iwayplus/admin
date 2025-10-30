@@ -1,7 +1,9 @@
 import 'package:admin/map.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import 'API/buildingAllApi.dart';
+import 'MasterGraphMap.dart';
 import 'SharedPreferenceHelper.dart';
 import 'UserLog.dart';
 import 'buildingInfoScreen.dart';
@@ -189,7 +191,52 @@ class _BeaconFingerprintScreenState extends State<BeaconFingerprintScreen> {
                   ):Center(child: CircularProgressIndicator(),),
                 ),
                 const SizedBox(height: 30),
-
+                SizedBox(
+                  width: double.infinity,
+                  height: 75,
+                  child: ElevatedButton(
+                    onPressed:(){
+                      print("got inside here");
+                      Navigator.push(context, MaterialPageRoute<void>(
+                          builder: (BuildContext context) => Mastergraphmap(venueName: 'Ashoka University',)
+                      ),);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      elevation: 8,
+                      shadowColor: Colors.green.withOpacity(0.3),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                    ).copyWith(
+                      backgroundColor: MaterialStateProperty.all(
+                        Colors.transparent,
+                      ),
+                    ),
+                    child: Ink(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Colors.green, Color(0xFFff8e8e)],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      child: Container(
+                        alignment: Alignment.center,
+                        child: const Text(
+                          'DISCONNECTED PATH',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
