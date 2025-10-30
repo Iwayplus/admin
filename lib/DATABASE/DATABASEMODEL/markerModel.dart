@@ -1,23 +1,32 @@
 import 'package:hive/hive.dart';
-part 'markerModel.g.dart';
 
+part 'markerModel.g.dart'; // Required for code generation
 
 @HiveType(typeId: 0)
 class MarkerModel extends HiveObject {
   @HiveField(0)
-  final String markerId;
+  String markerId;
 
   @HiveField(1)
-  final double latitude;
+  double latitude;
 
   @HiveField(2)
-  final double longitude;
+  double longitude;
 
   @HiveField(3)
-  final String iconPath;
+  String iconPath;
 
   @HiveField(4)
-  final DateTime savedAt; // 🕒 New field
+  DateTime savedAt;
+
+  @HiveField(5)
+  String markerName;
+
+  @HiveField(6)
+  String markerBName;
+
+  @HiveField(7)
+  String markerBFloor;// ✅ New field
 
   MarkerModel({
     required this.markerId,
@@ -25,5 +34,8 @@ class MarkerModel extends HiveObject {
     required this.longitude,
     required this.iconPath,
     required this.savedAt,
+    required this.markerName,
+    required this.markerBName,
+    required this.markerBFloor,// ✅ Add to constructor
   });
 }

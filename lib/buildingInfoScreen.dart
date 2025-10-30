@@ -160,13 +160,14 @@ bool isLoading=false;
                         ),
                       ],
                     ),
-                    child: Row(
+                    child:(dd!=null && dd!.buildings!=null && dd!.campus!=null)?
+                    Row(
                       children: [
                         Container(margin: EdgeInsets.only(left: 8,right: 8),child: Icon(Icons.school_outlined,color: Colors.white,size: 17,)),
                         Container(
                           margin: EdgeInsets.only(right: 8),
                           child: Text(
-                           "Hospitals"??"No category",
+                           "${dd!.buildings!.first.venueCategory}"??"No category",
                             style: const TextStyle(
                               fontFamily: "Roboto",
                               fontSize: 12,
@@ -178,10 +179,10 @@ bool isLoading=false;
                           ),
                         )
                       ],
-                    ),
+                    ):Container(),
                   ),
                 ),
-                IntrinsicHeight(
+                (dd!=null && dd!.buildings!=null && dd!.campus!=null)? IntrinsicHeight(
                   child: Container(
                     margin: EdgeInsets.only(top: 6,left: 16),
                     child: Text(
@@ -195,8 +196,8 @@ bool isLoading=false;
                       textAlign: TextAlign.left,
                     ),
                   ),
-                ),
-                Container(
+                ):Container(),
+                (dd!=null && dd!.buildings!=null && dd!.campus!=null)? Container(
                   margin: EdgeInsets.only(left: 16,top: 6),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -205,7 +206,7 @@ bool isLoading=false;
                       SizedBox(width: 8,),
                       Container(
                         child: Text(
-                          truncateString(makeAddress("AIIMS Jammu, Bari Kamlia, Samba, Jammu And Kashmir") ?? "",25),
+                          truncateString(makeAddress(dd!.buildings!.first.address!) ?? "",25),
                           style: const TextStyle(
                             fontFamily: "Roboto",
                             fontSize: 14,
@@ -236,7 +237,7 @@ bool isLoading=false;
                       ):Container()
                     ],
                   ),
-                ),
+                ):Container(),
                 Container(
                   margin: EdgeInsets.only(top: 32,left:16),
                   child: Text(
@@ -274,7 +275,7 @@ bool isLoading=false;
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => googleMap(fromPage: widget.frmMainScreen!, bid: dd!.buildings![index].sId.toString(),),
+                                  builder: (context) => googleMap(fromPage: widget.frmMainScreen!, bid: dd!.buildings![index].sId.toString(), bName: dd!.buildings![index].buildingName.toString(),),
                                 ),
                               );
                             },

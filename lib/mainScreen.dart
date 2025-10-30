@@ -22,8 +22,6 @@ class _BeaconFingerprintScreenState extends State<BeaconFingerprintScreen> {
     // TODO: implement initState
     super.initState();
     callBuildings();
-
-
   }
   callBuildings() async {
     buildingAllApi buildingController = buildingAllApi();
