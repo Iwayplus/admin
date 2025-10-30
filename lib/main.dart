@@ -25,7 +25,7 @@ Future<void> cleanOldMarkers() async {
   final box = Hive.box<MarkerModel>('markerBox');
   final now = DateTime.now();
   final keysToDelete = box.values
-      .where((marker) => now.difference(marker.savedAt).inDays > 15)
+      .where((marker) => now.difference(marker.savedAt).inDays > 7)
       .map((marker) => marker.markerId)
       .toList();
   print("keys tht has to be deleted:${keysToDelete}");

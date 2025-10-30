@@ -18,6 +18,7 @@ import 'package:wifi_scan/wifi_scan.dart';
 import '../APIMODELS/Building.dart';
 import '../APIMODELS/FingerPrintData.dart' as fp;
 import '../APIMODELS/beaconData.dart';
+import '../APIMODELS/beaconlog.dart';
 import '../APIMODELS/patchDataModel.dart';
 import '../APIMODELS/polylinedata.dart' as poly;
 import '../Bluetooth/BluetoothScanAndroidClass.dart';
@@ -58,6 +59,7 @@ class Fingerprinting{
   final DateFormat dateFormat = DateFormat("yyyy-MM-ddTHH:mm:ss.SSS'Z'");
   Timer? timer;
   BluetoothScanAndroidClass bluetoothScanAndroidClass = BluetoothScanAndroidClass();
+  String beconName="default";
 
   List<WiFiAccessPoint> accessPoints = [];
   StreamSubscription<List<WiFiAccessPoint>>? subscription;
@@ -71,6 +73,9 @@ class Fingerprinting{
   Future<void> updateMarker({
     required MarkerId markerId,
     required LatLng position,
+    String? beaconName,
+    String? beaconBname,
+    String? beaconFloor,
     BitmapDescriptor? newIcon,
   }) async {
     final box = Hive.box<MarkerModel>('markerBox');
@@ -80,13 +85,11 @@ class Fingerprinting{
       latitude: position.latitude,
       longitude: position.longitude,
       iconPath: 'assets/exitservice.svg',
-      savedAt: DateTime.now(),
+      savedAt: DateTime.now(), markerName: beaconName??"", markerBName:beaconBname??"", markerBFloor:beaconFloor??"",
     );
     await box.put(markerId.value, markerModel);
-
     // Update marker on map
     _dotMarkers.removeWhere((marker) => marker.markerId == markerId);
-
     final updatedMarker = Marker(
       markerId: markerId,
       position: position,
@@ -105,9 +108,9 @@ class Fingerprinting{
     _dotMarkers.clear();
     floor = polygonController.floor;
     apibeaconmap = beaconController.apibeaconmap;
-    print("floor selected:${floor}");
+    print("floor selected:${floor} ${apibeaconmap}");
     var fingerPrintData = await fingerPrintingGetApi().Finger_Printing_GET_API(bid,floor.toString());
-    // print("fingerprint data:${fingerPrintData!.fingerPrintData}");
+    print("fingerprint data:${fingerPrintData!.data}");
     preProcessedData=computeBeaconStats(fingerPrintData!.data!);
     Map<String,Set<Point2D>> interpolatedWaypoints=await polygonController.fetchWayPoints(bid);
    // List<poly.Nodes> waypoints = await polygonController.extractWaypoints();
@@ -175,54 +178,58 @@ class Fingerprinting{
       Map<String, beacon>? apibeaconmap,
       patchDataModel? patchData,
       int targetFloor,
+      BeaconLog beaconLog
       ) async {
-    final markerBox = Hive.box<MarkerModel>('markerBox');
-    final Set<String> savedMarkerIds = markerBox.values
-        .map((marker) => marker.markerId)
-        .toSet();
+    final Set<String> recentBeaconIds = beaconLog.scannedBeacons
+        ?.where((beacon) {
+      if (beacon.updatedAt == null) return false;
+      final updatedTime = DateTime.tryParse(beacon.updatedAt!);
+      if (updatedTime == null) return false;
 
+      final difference = DateTime.now().difference(updatedTime);
+      return difference.inDays <= 7;
+    })
+        .map((beacon) => beacon.beaconName)
+        .whereType<String>()
+        .toSet() ?? {};
     var dotIcon = await _svgToBitmapDescriptor('assets/dot.svg', Size(40, 40));
     var exitIcon = await _svgToBitmapDescriptor('assets/exitservice.svg', Size(40, 40));
 
     print("markers added for $apibeaconmap");
 
     int beaconCount = 0; // Counter for target floor beacons
-
     if (apibeaconmap != null && apibeaconmap.isNotEmpty) {
       for (var entry in apibeaconmap.entries) {
         final beaconItem = entry.value;
-
         if (beaconItem.floor == targetFloor &&
             beaconItem.coordinateX != null &&
             beaconItem.coordinateY != null) {
-
           beaconCount++; // Increment for each valid beacon
-
           List<double> value = tools.localtoglobal(
             beaconItem.coordinateX!,
             beaconItem.coordinateY!,
             patchData,
           );
-
           LatLng currentLatLng = LatLng(value[0], value[1]);
-
-          bool isSaved = savedMarkerIds.contains('${currentLatLng.latitude},${currentLatLng.longitude}');
+          bool isSaved = recentBeaconIds.contains(beaconItem.name);
           _dotMarkers.add(
             Marker(
               markerId: MarkerId('${currentLatLng.latitude},${currentLatLng.longitude}'),
               position: currentLatLng,
               icon: isSaved ? exitIcon : dotIcon,
-              onTap: () {
-                // optional onTap logic
-              },
+              onTap: () {},
+              infoWindow: InfoWindow(
+                  title: beaconItem.name.toString(),
+                  // snippet: '${landmarks[i].properties!.polyId}',
+                  // Replace with additional information
+                  onTap: () {}),
+              anchor: Offset(0.5, 0.5),
             ),
           );
         }
       }
     }
-
     _updateMarkers();
-
     return beaconCount; // 🔁 Return total beacons on this floor
   }
 
@@ -870,9 +877,9 @@ class Fingerprinting{
     }
   }
 
-
-
   Future<bool> stopCollectingData() async {
+    print("buildingAllApi.selectedBuildingID:${buildingAllApi.selectedBuildingID}");
+    buildingAllApi.selectedBuildingID="65d887a5db333f89457145f6";
     timer?.cancel();
     bluetoothScanAndroidClass.stopScan();
     bleManager.stopScanning();

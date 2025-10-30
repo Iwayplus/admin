@@ -1,21 +1,29 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:admin/APIMODELS/waypoint.dart';
 import 'package:admin/BluetoothManager/BLEManager.dart';
+import 'package:admin/api/beaconLogApi.dart';
 import 'package:admin/api/waypoint.dart';
 import 'package:admin/fingerprinting/pannels/finger_printing_pannel_controller.dart';
 import 'package:admin/modes.dart';
 import 'package:admin/patchController.dart';
 import 'package:admin/point2d.dart';
 import 'package:admin/polygonController.dart';
+import 'package:csv/csv.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:hive/hive.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:share_plus/share_plus.dart';
 import 'APIMODELS/FingerPrintData.dart';
+import 'APIMODELS/beaconlog.dart';
 import 'APIMODELS/polylinedata.dart' as poly;
+import 'DATABASE/DATABASEMODEL/markerModel.dart';
 import 'GPS.dart';
 import 'SharedPreferenceHelper.dart';
 import 'UserLog.dart';
@@ -32,7 +40,8 @@ import 'package:lottie/lottie.dart' as lott;
 class googleMap extends StatefulWidget {
   final String fromPage;
   final String bid;
-  const googleMap({super.key, required this.fromPage, required this.bid});
+  final String bName;
+  const googleMap({super.key, required this.fromPage, required this.bid, required this.bName});
 
   @override
   State<googleMap> createState() => _googleMapState();
@@ -54,8 +63,7 @@ class _googleMapState extends State<googleMap> {
   Fingerprinting fingerprinting = Fingerprinting();
 
   availableModes modes = availableModes();
-  wsocket ws = wsocket("com.iwayplus.rni");
-
+  wsocket ws = wsocket("com.iwayplus.admin");
   bool isLoading=false;
 
 
@@ -66,7 +74,7 @@ class _googleMapState extends State<googleMap> {
     fingerprinting.updateMarkers = updateMarkers;
     checkPermissions();
     fetchWayPoints();
-getUser();
+    getUser();
     setState((){});
   }
 
@@ -129,7 +137,7 @@ getUser();
   }
 
   Future<void> createRooms(String bid) async {
-    print("selected building id:${buildingAllApi.selectedBuildingID}");
+    print("selected building id:${buildingAllApi.selectedBuildingID} ${bid}");
     await patchController.createPatch(bid);
     fitPolygonInScreen(patchController.polygons.first);
     await polygonController.renderRooms(0, patchController.data,bid);
@@ -219,6 +227,64 @@ getUser();
       wsocket.sendmessg(); // safe to emit
     }
   }
+
+  int getBeaconCountForFloor(int currentFloor, List<ScannedBeacons>? beaconLog) {
+   for (var beacon in beaconLog??[]) {
+     final isSameFloor = beacon.floor == currentFloor;
+     final isSameBuilding = beacon.buildingID == widget.bid;
+     final isRecentlyUpdated = DateTime.now().difference(DateTime.parse(beacon.updatedAt!)).inDays <= 7;
+     final notAlreadyScanned = !scannedBeaconIds.contains(beacon.beaconName);
+     if (isSameFloor && isSameBuilding && isRecentlyUpdated && notAlreadyScanned) {
+       scannedBeaconIds.add(beacon.beaconName!);
+       print("scannedBeaconIds:${scannedBeaconIds}");
+     }
+   }
+   return beaconLog!.where((beacon) =>
+    beacon.floor == currentFloor &&
+        beacon.buildingID == widget.bid &&
+        DateTime.now().difference(DateTime.parse(beacon.updatedAt!)).inDays <= 7
+    ).length;
+  }
+
+
+  Future<void> exportMarkersToCSV() async {
+    final markerBox = Hive.box<MarkerModel>('markerBox');
+    final List<List<dynamic>> csvData = [];
+    // Add header row
+    csvData.add([
+      'BeaconName'
+      'BeaconId',
+      'BeaconBuilding',
+      'BeaconFloor'
+      'latitude',
+      'longitude',
+      'iconPath',
+      'savedAt',
+    ]);
+    // Add each marker as a row
+    for (var marker in markerBox.values) {
+      csvData.add([
+        marker.markerName,
+        marker.markerId,
+        marker.markerBName,
+        marker.markerBFloor,
+        marker.latitude,
+        marker.longitude,
+        marker.iconPath,
+        marker.savedAt.toIso8601String(),
+      ]);
+    }
+    String csv = const ListToCsvConverter().convert(csvData);
+    // Convert to CSV string
+    final dir = await getTemporaryDirectory(); // good for sharing
+    final path = '${dir.path}/beaconLog_export.csv';
+    final file = File(path);
+    await file.writeAsString(csv);
+
+    // Share the file
+    await Share.shareXFiles([XFile(file.path)],
+        text: '📍 Here is your exported beacon CSV file.');
+  }
   Timer? _messageTimer;
   Set<String> scannedBeaconIds = {};
   @override
@@ -228,7 +294,6 @@ getUser();
     return Scaffold(
       body: Stack(
         children: [
-
           GoogleMap(
             initialCameraPosition: _initialCameraPosition,
             onMapCreated: (controller) {
@@ -236,7 +301,6 @@ getUser();
               createRooms(widget.bid);
               goToUser();
               _updateProgress();
-
             },
             zoomControlsEnabled: false,
             polygons: polygonController.polygons.union(patchController.polygons),
@@ -247,7 +311,7 @@ getUser();
           ),
           Positioned(
             right: 16,
-            bottom: 150,
+            bottom: 110,
             child: Column(
               children: [
                 Text("${nearesPoint}"),
@@ -255,10 +319,9 @@ getUser();
                   activeIcon: Icons.close,
                   backgroundColor: Colors.white,
                   children: List.generate(
-                    polygonController.numberOfFloors.length,
-                        (int i) {
+                    10,(int i) {
                       List<int> floorList = polygonController.numberOfFloors;
-                      List<int> revfloorList = floorList;
+                      List<int> revfloorList = [0,1,2,3,4,5,6,7,8,9,10];
                       revfloorList.sort();
                       return SpeedDialChild(
                         child: Semantics(
@@ -319,8 +382,7 @@ getUser();
                   ],
                   child: Icon(Icons.code_off),
                 ):Container(),
-                SizedBox(height: 20,),
-                    FloatingActionButton(onPressed: (){
+                (beaconController.apibeaconmap!=null && widget.fromPage=="FINGERPRINTING")?  FloatingActionButton(onPressed: (){
                       fingerprinting.clearMarkers();
                       fingerprinting.collectSensorDataEverySecond();
                       Future.delayed(Duration(seconds: 6)).then((_) async {
@@ -341,19 +403,22 @@ getUser();
                           nearesPoint;
                         });
                       });
-                    },child: Icon(Icons.account_balance),),
-                SizedBox(height: 20,),
-                (beaconController.apibeaconmap!=null && widget.fromPage!="FINGERPRINTING")?
+                    },child: Icon(CupertinoIcons.antenna_radiowaves_left_right),):Container(),
+                SizedBox(height: 10,),
+                (beaconController.apibeaconmap!=null && beaconController.apibeaconmap!.isNotEmpty && widget.fromPage!="FINGERPRINTING")?
                 FloatingActionButton(
                   backgroundColor:(!_isbeaconLogging)? Colors.green:Colors.red,
-                  onPressed: ()async{
+                  onPressed:()async{
                     if(!_isbeaconLogging){
-                      print("buildingAllApi.selectedVenue ${buildingAllApi.selectedVenue} ${buildingAllApi.selectedBuildingID}");
+                      print("buildingAllApi.selectedVenue ${buildingAllApi.selectedVenue} ${buildingAllApi.selectedBuildingID} ${Beaconlogapi().fetchBeaconLogData()}");
                       getUser();
                       _messageTimer=Timer.periodic(Duration(seconds: 5),(timer){
                         wsocket.sendmessg();
                       });
-                      fingerprinting.addBeaconMarkers(beaconController.apibeaconmap,patchController.data,polygonController.floor).then((value){
+                      final beaconLog=await Beaconlogapi().fetchBeaconLogData()!;
+                      // print("beaconlog data:${beaconLog!.scannedBeacons!.length}");
+                     scannedBeacons=getBeaconCountForFloor(polygonController.floor,beaconLog?.scannedBeacons!);
+                      fingerprinting.addBeaconMarkers(beaconController.apibeaconmap,patchController.data,polygonController.floor,beaconLog!).then((value){
                         totalBeacons=value;
                         _bleManager.startScanning(bufferSize: 5, streamFrequency: 5);
                       });
@@ -365,9 +430,7 @@ getUser();
                               .toList();
                           if (beaconController.apibeaconmap!.containsKey(deviceName) &&
                               beaconController.apibeaconmap![deviceName]!.floor == polygonController.floor) {
-
                             final beaconItem = beaconController.apibeaconmap![deviceName];
-
                             List<double> value = tools.localtoglobal(
                               beaconItem!.coordinateX!,
                               beaconItem.coordinateY!,
@@ -380,13 +443,14 @@ getUser();
                               scannedBeaconIds.add(beaconKey);     // track the beacon
                               scannedBeacons++;                    // count it once
                             }
-                            // Update marker regardless (or conditionally if you want)
                             fingerprinting.updateMarker(
                               markerId: MarkerId(beaconKey),
                               position: currentLatLng,
+                              beaconName: deviceName,
+                              beaconBname:widget.bName,
+                              beaconFloor:beaconController.apibeaconmap![deviceName]!.floor.toString()
                             );
                           }
-
                         });
                       });
                       setState(() {
@@ -402,8 +466,13 @@ getUser();
                       });
                     }
                 },child: Icon(CupertinoIcons.antenna_radiowaves_left_right,size: 30,fill:0.4,),):Container(),
-                 SizedBox(height: 20,),
-
+                SizedBox(height: 5,),
+                (beaconController.apibeaconmap!=null && widget.fromPage!="FINGERPRINTING")?FloatingActionButton(
+                  backgroundColor:Colors.grey,
+                  onPressed:()async{
+                    await exportMarkersToCSV();
+                  },child: Icon(CupertinoIcons.book_fill,size: 30,fill:0.4,),):Container(),
+                 SizedBox(height: 5,),
               ],
             ),
           ),

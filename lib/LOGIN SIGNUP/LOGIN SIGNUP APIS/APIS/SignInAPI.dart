@@ -9,7 +9,6 @@ import '../MODELS/SignInAPIModel.dart';
 class SignInAPI{
 
   final String baseUrl = "${AppConfig.baseUrl}/auth/signin";
-
   Future<SignInApiModel?> signIN(String username, String password) async {
 
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
@@ -27,6 +26,8 @@ class SignInAPI{
         'Content-Type': 'application/json',
       },
     );
+
+
 
     if (response.statusCode == 200) {
       try {

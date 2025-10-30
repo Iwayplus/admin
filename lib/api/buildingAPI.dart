@@ -19,6 +19,7 @@ class BuildingAPI {
   Future<Building?> fetchBuildData() async {
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
     accessToken = await prefs.getMap("signin")!["accessToken"];
+    print("buildingAllApi.selectedVenue:${buildingAllApi.selectedVenue}");
     final Map<String, dynamic> data = {
       "venueName": buildingAllApi.selectedVenue,
       "campusIncludes":true
