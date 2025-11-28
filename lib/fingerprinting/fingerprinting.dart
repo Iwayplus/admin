@@ -800,9 +800,10 @@ class Fingerprinting{
     });
 
     /// Timer to collect and flush data every second
-    List<Beacon> beacons = []; // Persistent list outside the timer
+
     timer = Timer.periodic(Duration(seconds: 1), (timer) async {
-      print("inside loop1");
+      List<Beacon> beacons = []; // Persistent list outside the timer
+      print("inside loop1 ${_beaconRssiBuffer.length}");
       _beaconRssiBuffer.forEach((key, rssiList) {
         print("inside loop2 ${apibeaconmap}");
         print("yfyuvy ${apibeaconmap != null && apibeaconmap![key] != null && rssiList.isNotEmpty}");
@@ -831,7 +832,7 @@ class Fingerprinting{
       var lux = await fetchLux();
 
       var fingerprint = SensorFingerprint(
-        beacons: beacons,
+        beacons: beacons.isEmpty?null:beacons,
         wifi: wifi,
         gpsData: gpsData,
         magnetometerData: magnetometerData,

@@ -40,7 +40,7 @@ class SensorFingerprint {
 
   // Serialize to JSON
   Map<String, dynamic> toJson() {
-    return {
+    var data = {
       'beacons': beacons?.map((beacon) => beacon.toJson()).toList(),
       'wifi': wifi?.map((wifi) => wifi.toJson()).toList(),
       'gpsData': gpsData?.toJson(),
@@ -49,6 +49,10 @@ class SensorFingerprint {
       'lux': lux,
       'timeStamp': timeStamp,
     };
+    if(beacons != null){
+      data['beacons'] = beacons?.map((beacon) => beacon.toJson()).toList();
+    }
+    return data;
   }
 
   // Deserialize from JSON
