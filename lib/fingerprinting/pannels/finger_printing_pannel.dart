@@ -21,7 +21,7 @@ class pinLandmark extends StatefulWidget {
 class _pinLandmarkState extends State<pinLandmark> {
   late FixedExtentScrollController _controller;
 
-  List<bool> isSelected = [true, false, false, false];
+  List<bool> isSelected = [true, false, false, false, false];
   int selectedTimeInSeconds = 10; // Default to 10 seconds
   ValueNotifier<int> remainingTime = ValueNotifier<int>(0);
   Timer? countdownTimer;
@@ -37,12 +37,15 @@ class _pinLandmarkState extends State<pinLandmark> {
           selectedTimeInSeconds = 10;
           break;
         case 1:
-          selectedTimeInSeconds = 60;
+          selectedTimeInSeconds = 30;
           break;
         case 2:
-          selectedTimeInSeconds = 90;
+          selectedTimeInSeconds = 60;
           break;
         case 3:
+          selectedTimeInSeconds = 90;
+          break;
+        case 4:
           selectedTimeInSeconds = 120;
           break;
       }
@@ -125,6 +128,10 @@ class _pinLandmarkState extends State<pinLandmark> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text("10 sec"),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text("30 sec"),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),

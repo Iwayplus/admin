@@ -56,7 +56,7 @@ class MainActivity : FlutterActivity() {
             }
 
             // Extract device name
-            if (device.name != null && device.name.contains("IW")) {
+            if (device.name != null) {
 //                Log.d("BluetoothScan","Device Info $result");
                 val scanRecord = result.scanRecord
 

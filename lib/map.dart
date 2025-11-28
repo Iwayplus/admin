@@ -423,35 +423,35 @@ class _googleMapState extends State<googleMap> {
                         _bleManager.startScanning(bufferSize: 5, streamFrequency: 5);
                       });
                       _bleManager.bufferedDeviceStream.listen((device){
-                        device.forEach((deviceName, deviceRssi) {
-                          final rssiList = deviceRssi.values
-                              .map((val) => int.tryParse(val.toString()))
-                              .whereType<int>() // filters out nulls
-                              .toList();
-                          if (beaconController.apibeaconmap!.containsKey(deviceName) &&
-                              beaconController.apibeaconmap![deviceName]!.floor == polygonController.floor) {
-                            final beaconItem = beaconController.apibeaconmap![deviceName];
-                            List<double> value = tools.localtoglobal(
-                              beaconItem!.coordinateX!,
-                              beaconItem.coordinateY!,
-                              patchController.data,
-                            );
-                            LatLng currentLatLng = LatLng(value[0], value[1]);
-                            String beaconKey = '${currentLatLng.latitude},${currentLatLng.longitude}';
-                            // Only count if this beacon hasn't already been scanned
-                            if (!scannedBeaconIds.contains(beaconKey)) {
-                              scannedBeaconIds.add(beaconKey);     // track the beacon
-                              scannedBeacons++;                    // count it once
-                            }
-                            fingerprinting.updateMarker(
-                              markerId: MarkerId(beaconKey),
-                              position: currentLatLng,
-                              beaconName: deviceName,
-                              beaconBname:widget.bName,
-                              beaconFloor:beaconController.apibeaconmap![deviceName]!.floor.toString()
-                            );
-                          }
-                        });
+                        // device.forEach((deviceName, deviceRssi) {
+                        //   final rssiList = deviceRssi.values
+                        //       .map((val) => int.tryParse(val.toString()))
+                        //       .whereType<int>() // filters out nulls
+                        //       .toList();
+                        //   if (beaconController.apibeaconmap!.containsKey(deviceName) &&
+                        //       beaconController.apibeaconmap![deviceName]!.floor == polygonController.floor) {
+                        //     final beaconItem = beaconController.apibeaconmap![deviceName];
+                        //     List<double> value = tools.localtoglobal(
+                        //       beaconItem!.coordinateX!,
+                        //       beaconItem.coordinateY!,
+                        //       patchController.data,
+                        //     );
+                        //     LatLng currentLatLng = LatLng(value[0], value[1]);
+                        //     String beaconKey = '${currentLatLng.latitude},${currentLatLng.longitude}';
+                        //     // Only count if this beacon hasn't already been scanned
+                        //     if (!scannedBeaconIds.contains(beaconKey)) {
+                        //       scannedBeaconIds.add(beaconKey);     // track the beacon
+                        //       scannedBeacons++;                    // count it once
+                        //     }
+                        //     fingerprinting.updateMarker(
+                        //       markerId: MarkerId(beaconKey),
+                        //       position: currentLatLng,
+                        //       beaconName: deviceName,
+                        //       beaconBname:widget.bName,
+                        //       beaconFloor:beaconController.apibeaconmap![deviceName]!.floor.toString()
+                        //     );
+                        //   }
+                        // });
                       });
                       setState(() {
                         _isbeaconLogging=true;

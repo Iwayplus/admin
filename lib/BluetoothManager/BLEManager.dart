@@ -21,8 +21,8 @@ class BLEManager{
 
   static const methodChannel = MethodChannel('com.example.bluetooth/scan');
   static const eventChannel = EventChannel('com.example.bluetooth/scanUpdates');
-  final StreamController<Map<String, dynamic>> _bufferedDeviceStreamController = StreamController<Map<String, dynamic>>.broadcast();
-  Stream<Map<String, dynamic>> get bufferedDeviceStream => _bufferedDeviceStreamController.stream;
+  final StreamController<MapEntry<String, int>> _bufferedDeviceStreamController = StreamController<MapEntry<String, int>>.broadcast();
+  Stream<MapEntry<String, int>> get bufferedDeviceStream => _bufferedDeviceStreamController.stream;
   static StreamSubscription? _scanSubscription;
 
   Timer? _bufferEmitTimer;
@@ -53,12 +53,12 @@ class BLEManager{
 
 
   void startBufferedEmission({required int bufferSizeInSeconds}) {
-    if(kDebugMode) print("startBufferEmission");
-    _bufferEmitTimer?.cancel(); // cancel previous if any
-    _bufferEmitTimer = Timer.periodic(Duration(seconds: bufferSizeInSeconds), (_) {
-      final dataToSend = Map<String, Map<DateTime,String>>.from(buffer);
-      _bufferedDeviceStreamController.add(dataToSend);
-    });
+    // if(kDebugMode) print("startBufferEmission");
+    // _bufferEmitTimer?.cancel(); // cancel previous if any
+    // _bufferEmitTimer = Timer.periodic(Duration(seconds: bufferSizeInSeconds), (_) {
+    //   final dataToSend = Map<String, Map<DateTime,String>>.from(buffer);
+    //   _bufferedDeviceStreamController.add(dataToSend);
+    // });
   }
   void printFull(String text) {
     const int chunkSize = 800; // Console limit-safe size
@@ -105,8 +105,10 @@ class BLEManager{
       BluetoothDevice deviceDetails = HelperClass().parseDeviceDetails(device);
       wsocket.message["AppInitialization"]["nearByDevices"][deviceDetails.rawData] = deviceDetails.DeviceRssi;
       wsocket.message["AppInitialization"]["bleScanResults"][deviceDetails.DeviceName] = int.parse(deviceDetails.DeviceRssi);
-      buffer.putIfAbsent(deviceDetails.DeviceName, () => <DateTime, String>{});
-      buffer[deviceDetails.DeviceName]![DateTime.now()] = deviceDetails.DeviceRssi;
+      MapEntry<String, int> map = MapEntry(deviceDetails.DeviceName, int.parse(deviceDetails.DeviceRssi));
+      _bufferedDeviceStreamController.add(map);
+      // buffer.putIfAbsent(deviceDetails.DeviceName, () => <DateTime, String>{});
+      // buffer[deviceDetails.DeviceName]![DateTime.now()] = deviceDetails.DeviceRssi;
     }, onError: (error) {
       if (kDebugMode) print('Error receiving device updates: $error');
     });

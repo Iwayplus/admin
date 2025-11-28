@@ -785,18 +785,8 @@ class Fingerprinting{
 
     /// Bluetooth beacon stream listener
     bleManager.bufferedDeviceStream.listen((data) {
-      data.forEach((deviceName, deviceRssi) {
-        final rssiList = deviceRssi.values
-            .map((val) => int.tryParse(val.toString()))
-            .whereType<int>() // filters out nulls
-            .toList();
-        if (!_beaconRssiBuffer.containsKey(deviceName)) {
-          _beaconRssiBuffer[deviceName] = [];
-        }
-        _beaconRssiBuffer[deviceName]!.addAll(rssiList);
-
-        print("RSSI collected: $deviceName => ${_beaconRssiBuffer[deviceName]}");
-      });
+      _beaconRssiBuffer.putIfAbsent(data.key, ()=>[]);
+      _beaconRssiBuffer[data.key]!.add(data.value);
     });
 
     /// Timer to collect and flush data every second
@@ -807,7 +797,7 @@ class Fingerprinting{
       _beaconRssiBuffer.forEach((key, rssiList) {
         print("inside loop2 ${apibeaconmap}");
         print("yfyuvy ${apibeaconmap != null && apibeaconmap![key] != null && rssiList.isNotEmpty}");
-        if (apibeaconmap != null && apibeaconmap![key] != null && rssiList.isNotEmpty) {
+        if (apibeaconmap != null && rssiList.isNotEmpty) {
           final existingIndex = beacons.indexWhere((b) => b.beaconMacId == key);
           print("existingIndex ${existingIndex} for ${key}");
           if (existingIndex != -1) {
