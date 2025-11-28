@@ -11,7 +11,6 @@ import 'package:flutter_compass/flutter_compass.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hive/hive.dart';
-import 'package:light/light.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:wifi_scan/wifi_scan.dart';
 
@@ -54,7 +53,6 @@ class Fingerprinting{
   double _x = 0.0, _y = 0.0, _z = 0.0;
   double theta = 0.0;
   int _lightValue = 0;
-  Light _light = Light();
   StreamSubscription? _Lightsubscription;
   final DateFormat dateFormat = DateFormat("yyyy-MM-ddTHH:mm:ss.SSS'Z'");
   Timer? timer;
@@ -640,18 +638,14 @@ class Fingerprinting{
     // Step 2: Compare cosine + distance for locations with max overlap
     String? bestLocation;
     double bestScore = -double.infinity;
-
     print("locationOverlapMap:${locationOverlapMap}");
-
     locationOverlapMap.forEach((locationKey, overlap) {
       if (overlap == maxOverlap) {
         final preBeacons = preProcessedData[locationKey]['beacons'] as Map<String, dynamic>;
 
         final List<double> realtimeVector = [];
         final List<double> preprocessedVector = [];
-
         double distance = 0;
-
         for (final macId in realtimeBeacons.keys) {
           if (preBeacons.containsKey(macId)) {
             final realMean = realtimeBeacons[macId]['mean'] as double;
@@ -663,23 +657,18 @@ class Fingerprinting{
             distance += pow(preMean - realMean, 2);
           }
         }
-
         distance = sqrt(distance);
         final cosineSimilarity = computeCosineSimilarity(realtimeVector, preprocessedVector);
-
         // Combine into score
         final similarityScore =
             (cosineSimilarity * cosineWeight) + ((1 / (1 + distance)) * distanceWeight);
-
         if (similarityScore > bestScore) {
           bestScore = similarityScore;
           bestLocation = locationKey;
         }
       }
     });
-
     print("Best location (raw): $bestLocation with score: $bestScore");
-
     // === History logic with weighting and filtering ===
     if (bestLocation != null && bestScore >= confidenceThreshold) {
       // If a major change occurs, reset history
@@ -687,12 +676,12 @@ class Fingerprinting{
         predictionHistory.clear();
       }
       predictionHistory.add(bestLocation!);
-      if (predictionHistory.length > historyLimit) {
+      if (predictionHistory.length > historyLimit){
         predictionHistory.removeAt(0);
       }
       // Weighted voting: newer predictions carry more weight
       final Map<String, double> weightedCounts = {};
-      for (int i = 0; i < predictionHistory.length; i++) {
+      for (int i = 0; i < predictionHistory.length; i++){
         final loc = predictionHistory[i];
         final weight = (i + 1) / predictionHistory.length;
         weightedCounts[loc] = (weightedCounts[loc] ?? 0) + weight;
@@ -787,9 +776,9 @@ class Fingerprinting{
       theta = event.heading!;
     });
 
-    _Lightsubscription = _light.lightSensorStream.listen((value) {
-      _lightValue = value;
-    });
+    // _Lightsubscription = _light.lightSensorStream.listen((value) {
+    //   _lightValue = value;
+    // });
 
     /// Buffer for collecting multiple RSSI values per beacon per second
     Map<String, List<int>> _beaconRssiBuffer = {};

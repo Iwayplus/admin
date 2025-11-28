@@ -41,7 +41,6 @@ dependencies:
   flutter_compass: ^0.8.0
   cupertino_icons: ^1.0.6
   sensors_plus: ^4.0.2
-  light: ^3.0.1
   intl: ^0.20.1
   action_slider: ^0.7.0
   fluttertoast: ^8.2.4

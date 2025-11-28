@@ -382,7 +382,7 @@ class _googleMapState extends State<googleMap> {
                   ],
                   child: Icon(Icons.code_off),
                 ):Container(),
-                (beaconController.apibeaconmap!=null && widget.fromPage=="FINGERPRINTING")?  FloatingActionButton(onPressed: (){
+                (beaconController.apibeaconmap!=null && widget.fromPage=="FINGERPRINTING")? FloatingActionButton(onPressed: (){
                       fingerprinting.clearMarkers();
                       fingerprinting.collectSensorDataEverySecond();
                       Future.delayed(Duration(seconds: 6)).then((_) async {

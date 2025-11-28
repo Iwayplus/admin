@@ -9,7 +9,7 @@ import 'RefreshTokenAPI.dart';
 
 
 class beaconapi {
-  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/secured/building/beacons" : "https://dev.iwayplus.in/secured/building/beacons";
+  final String baseUrl = kDebugMode? "https://maps.iwayplus.in/secured/building/beacons" : "https://dev.iwayplus.in/secured/building/beacons";
   String accessToken = "";
   Future<List<beacon>> fetchBeaconData(String id) async {
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
