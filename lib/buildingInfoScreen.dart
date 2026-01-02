@@ -269,6 +269,8 @@ bool isLoading=false;
                               buildingAllApi.selectedBuildingID=currentData.sId;
                               wsocket.message["AppInitialization"]["BID"]=dd!.buildings![index].sId;
                               wsocket.message["AppInitialization"]["buildingName"]=dd!.buildings![index].venueName;
+                              buildingAllApi.selectedVenue=dd!.buildings![index].venueName!;
+                              buildingAllApi.selectedBuildingName=dd!.buildings![index].buildingName!;
                               setState((){});
                               print("allbuildingapi");
                               print("${buildingAllApi.selectedBuildingID} ${dd!.buildings![index].sId} ${index}");
