@@ -1,8 +1,10 @@
+import 'package:admin/api/RefreshTokenAPI.dart';
 import 'package:admin/map.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart';
 
 import 'API/buildingAllApi.dart';
+import 'LOGIN SIGNUP/SignIn.dart';
 import 'MasterGraphMap.dart';
 import 'SharedPreferenceHelper.dart';
 import 'UserLog.dart';
@@ -23,15 +25,42 @@ class _BeaconFingerprintScreenState extends State<BeaconFingerprintScreen> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    callBuildings();
+    isUserValid().then((value){
+      if(!value){
+        callBuildings();
+      }
+
+    });
   }
+
+  Future<bool> isUserValid() async{
+    try{
+      String refreshToken1= await RefreshTokenAPI.refresh();
+      if(refreshToken1=="400"){
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => SignIn()),
+              (route) => false,
+        );
+        return true;
+      }
+      return false;
+    }
+    catch(e){
+      return false;
+    }
+  }
+
   callBuildings() async {
     buildingAllApi buildingController = buildingAllApi();
     await buildingController.fetchBuildingAllData().then((value){
       if(value.isNotEmpty){
-        setState(() {
-          _isLoading=false;
-        });
+        if(mounted){
+          setState(() {
+            _isLoading=false;
+          });
+        }
+
       }
     });
   }

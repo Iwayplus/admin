@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:admin/config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
@@ -6,16 +7,14 @@ import '../SharedPreferenceHelper.dart';
 
 class RefreshTokenAPI {
 
-  static String baseUrl = kDebugMode? "https://dev.iwayplus.in/api/refreshToken?API_KEY=be349f00-b6cb-11ee-b352-d74b1ab1edff" : "https://maps.iwayplus.in/api/refreshToken?API_KEY=be349f00-b6cb-11ee-b352-d74b1ab1edff";
+  static String baseUrl ="${AppConfig.baseUrl}/api/refreshToken";
 
   static Future<String> refresh() async {
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
     String refreshToken = await prefs.getMap("signin")!["refreshToken"];
-
     final Map<String, dynamic> data = {
       "refreshToken": refreshToken,
     };
-
     final response = await http.post(
       Uri.parse(baseUrl), body: json.encode(data),
       headers: {

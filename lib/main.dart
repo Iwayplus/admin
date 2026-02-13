@@ -1,4 +1,5 @@
 import 'package:admin/map.dart';
+import 'package:admin/pdrCalibration.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
@@ -71,24 +72,32 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<SharedPreferenceHelper>(
-      future: _preferencesFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return SignIn();
-        } else if (snapshot.hasError) {
-          return SignIn();
-        } else if (snapshot.hasData) {
-          print("data has been stored:${snapshot.data?.getMap("signin")}");
-          if (snapshot.data?.getMap("signin") == null) {
-            return SignIn();
-          } else {
-            return BeaconFingerprintScreen();
-          }
-        } else {
-          return SignIn();
-        }
-      },
+    // TODO: implement build
+    return MaterialApp(
+      home: PDRCalibrationScreen(),
     );
   }
+
+  // @override
+  // Widget build(BuildContext context) {
+  //   return FutureBuilder<SharedPreferenceHelper>(
+  //     future: _preferencesFuture,
+  //     builder: (context, snapshot) {
+  //       if (snapshot.connectionState == ConnectionState.waiting) {
+  //         return SignIn();
+  //       } else if (snapshot.hasError) {
+  //         return SignIn();
+  //       } else if (snapshot.hasData) {
+  //         print("data has been stored:${snapshot.data?.getMap("signin")}");
+  //         if (snapshot.data?.getMap("signin") == null) {
+  //           return SignIn();
+  //         } else {
+  //           return BeaconFingerprintScreen();
+  //         }
+  //       } else {
+  //         return SignIn();
+  //       }
+  //     },
+  //   );
+  // }
 }

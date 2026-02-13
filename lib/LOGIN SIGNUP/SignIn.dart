@@ -12,6 +12,7 @@ import '../mainScreen.dart';
 import '../map.dart';
 import 'LOGIN SIGNUP APIS/APIS/SignInAPI.dart';
 import 'LOGIN SIGNUP APIS/MODELS/SignInAPIModel.dart';
+import 'SignUp.dart';
 
 class SignIn extends StatefulWidget {
   final String? emailOrPhoneNumber;
@@ -439,6 +440,51 @@ class _SignInState extends State<SignIn> {
                                         ),
                                       ),
                                     ),
+                                  ),
+                                ),
+
+                                Container(
+                                  // margin: EdgeInsets.only(top:20),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                          child: Text(
+                                            "Dont have a account?",
+                                            style: const TextStyle(
+                                            fontFamily: "Roboto",
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w400,
+                                            height: 20/14,
+                                          ),
+                                            textAlign: TextAlign.center,
+                                          )
+                                      ),
+                                      Container(
+                                          child: TextButton(
+                                            onPressed: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => SignUp(),
+                                                ),
+                                              );
+                                            },
+                                            child: Text(
+                                              "Sign up",
+                                              style: const TextStyle(
+                                                fontFamily: "Roboto",
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w400,
+                                                height: 20/14,
+                                                color: Color(0xff6CC8BF),
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          )
+                                      ),
+
+                                    ],
                                   ),
                                 ),
                               ],

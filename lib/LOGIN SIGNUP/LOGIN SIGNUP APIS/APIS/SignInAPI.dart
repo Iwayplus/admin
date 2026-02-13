@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:admin/HelperClass.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../API/RefreshTokenAPI.dart';
@@ -16,7 +17,8 @@ class SignInAPI{
     final Map<String, dynamic> data = {
       "username": username,
       "password": password,
-      "appId":"com.iwayplus.navigation"
+      "mode":"cms",
+      "appId":"cms"
     };
 
     final response = await http.post(
@@ -43,6 +45,8 @@ class SignInAPI{
       } catch (e) {
         throw Exception('Failed to parse data');
       }
+    }else{
+      HelperClass.showToast("${response.body}");
     }
   }
 
