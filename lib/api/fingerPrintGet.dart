@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:admin/config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../APIMODELS/FingerPrintData.dart';
@@ -6,7 +7,7 @@ import '../fingerprinting/SensorFingerprint.dart';
 import '../SharedPreferenceHelper.dart';
 import 'RefreshTokenAPI.dart';
 class fingerPrintingGetApi {
-  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/admin/get-fingerprints/" : "https://dev.iwayplus.in/admin/get-fingerprints/";
+  final String baseUrl = "${AppConfig.baseUrl}/admin/get-fingerprints/";
   String accessToken = "";
   Future<FingerPrintData?> Finger_Printing_GET_API(String building_ID,String floor) async {
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();

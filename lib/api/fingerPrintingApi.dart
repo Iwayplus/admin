@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:admin/config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../fingerprinting/SensorFingerprint.dart';
@@ -7,7 +8,7 @@ import 'RefreshTokenAPI.dart';
 
 
 class fingerPrintingApi {
-  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/admin/add-fingerprinting-data" : "https://dev.iwayplus.in/admin/add-fingerprinting-data";
+  final String baseUrl = "${AppConfig.baseUrl}/admin/add-fingerprinting-data";
   String accessToken = "";
   Future<bool> Finger_Printing_API(String building_ID, Data fingerPrint) async {
     print("buildigid:${building_ID}");

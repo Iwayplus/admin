@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:admin/map.dart';
+import 'package:admin/mapDemoScreen.dart';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +23,7 @@ import 'APIMODELS/buildingAll.dart';
 import 'HelperClass.dart';
 import 'UserLog.dart';
 import 'api/buildingAPI.dart';
+import 'fingerprinting/fingerprinting.dart';
 class BuildingInfoScreen extends StatefulWidget {
   List<buildingAll>? receivedAllBuildingList;
   String? venueTitle;
@@ -42,7 +44,8 @@ class BuildingInfoScreen extends StatefulWidget {
 
 class _BuildingInfoScreenState extends State<BuildingInfoScreen> {
   late List<buildingAll> allBuildingList=[];
-  Building? dd;
+  final Fingerprinting _fingerprinting = Fingerprinting();
+  BuildingData? dd;
   HashMap<String,g.LatLng> allBuildingID = new HashMap();
   String truncateString(String input, int maxLength) {
     if (input.length <= maxLength) {
@@ -121,7 +124,6 @@ bool isLoading=false;
                 )
             ),
           ),
-
           backgroundColor: Colors.transparent, // Set the background color to transparent
           elevation: 0,
           flexibleSpace: Container(
@@ -265,21 +267,33 @@ bool isLoading=false;
                         child: Container(
                           child:
                           ListTile(
-                            onTap: (){
-                              buildingAllApi.selectedBuildingID=currentData.sId;
-                              wsocket.message["AppInitialization"]["BID"]=dd!.buildings![index].sId;
+                            onTap:(){
+                              buildingAllApi.selectedBuildingID=dd!.buildings![index].id.toString();
+                              wsocket.message["AppInitialization"]["BID"]=dd!.buildings![index].id;
                               wsocket.message["AppInitialization"]["buildingName"]=dd!.buildings![index].venueName;
                               buildingAllApi.selectedVenue=dd!.buildings![index].venueName!;
                               buildingAllApi.selectedBuildingName=dd!.buildings![index].buildingName!;
+                              buildingAllApi.isGlobalAnnotation=dd!.buildings![index].globalAnnotation;
                               setState((){});
                               print("allbuildingapi");
-                              print("${buildingAllApi.selectedBuildingID} ${dd!.buildings![index].sId} ${index}");
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => googleMap(fromPage: widget.frmMainScreen!, bid: dd!.buildings![index].sId.toString(), bName: dd!.buildings![index].buildingName.toString(),),
-                                ),
-                              );
+                              print("${buildingAllApi.selectedBuildingID} ${dd!.buildings![index].id} ${index}");
+
+                              if(buildingAllApi.isGlobalAnnotation){
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => MapDemoScreen(fingerprinting: _fingerprinting),
+                                  ),
+                                );
+                              }else{
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => googleMap(fromPage: widget.frmMainScreen!, bid: dd!.buildings![index].id.toString(), bName: dd!.buildings![index].buildingName.toString(),),
+                                  ),
+                                );
+                              }
+
                             },
                             title: Container(
 

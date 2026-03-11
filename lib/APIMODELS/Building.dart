@@ -1,225 +1,355 @@
-class Building {
-  List<Buildings>? buildings;
-  Campus? campus;
+class BuildingData {
+  List<Building>? buildings;
+  CampusResponse? campus;
 
-  Building({this.buildings, this.campus});
+  BuildingData({
+    required this.buildings,
+    required this.campus,
+  });
 
-  Building.fromJson(Map<String, dynamic> json) {
+  BuildingData.fromJson(Map<dynamic, dynamic> json){
     if (json['buildings'] != null) {
-      buildings = <Buildings>[];
+      buildings = <Building>[];
       json['buildings'].forEach((v) {
-        buildings!.add(new Buildings.fromJson(v));
+        buildings!.add(new Building.fromJson(v));
       });
     }
-    campus =
-        json['campus'] != null ? new Campus.fromJson(json['campus']) : null;
+    campus = json['campus'] != null
+        ? parseCampusResponse(json['campus'])
+        : null;
   }
 
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
+  static BuildingData parseBuildingData(dynamic json) {
+    if (json is Map<dynamic, dynamic>) {
+      return BuildingData.fromJson(json);
+    }
+    // If the API returns a string or list unexpectedly
+    throw Exception("Invalid JSON format for BuildingData: $json");
+
+  }
+
+
+  // BuildingData.fromJson(dynamic json) {
+  //   return BuildingData(
+  //     buildings: (json['buildings'] as List<dynamic>)
+  //         .map((e) => Building.fromJson(e))
+  //         .toList(),
+  //     campus: Campus.fromJson(json['campus']),
+  //   );
+  // }
+
+  Map<dynamic, dynamic> toJson() {
+    final Map<dynamic, dynamic> data = new Map<dynamic, dynamic>();
     if (this.buildings != null) {
       data['buildings'] = this.buildings!.map((v) => v.toJson()).toList();
     }
-    if (this.campus != null) {
-      data['campus'] = this.campus!.toJson();
+    if (campus != null) {
+      if (campus is Campus) {
+        data['campus'] = (campus as Campus).toJson();
+      } else if (campus is CampusMeta) {
+        data['campus'] = (campus as CampusMeta).toJson();
+      }
     }
     return data;
   }
 }
 
-class Buildings {
-  bool? globalAnnotation;
-  bool? locked;
-  String? sId;
-  String? initialBuildingName;
-  String? initialVenueName;
-  String? buildingName;
-  String? venueName;
-  String? venueCategory;
-  String? buildingCategory;
-  List<double>? coordinates;
-  String? address;
-  bool? liveStatus;
-  bool? geofencing;
-  String? phone;
-  String? venuePhoto;
-  String? buildingPhoto;
-  List<WorkingDays>? workingDays;
-  String? createdAt;
-  String? updatedAt;
-  int? iV;
-  List<List>? boundary;
+class Building {
+  final String id;
+  final String initialBuildingName;
+  final String initialVenueName;
+  final String buildingName;
+  final String venueName;
+  final String? venueCategory;
+  final String? buildingCategory;
+  final List<double> coordinates;
+  final String address;
+  final bool liveStatus;
+  final bool geofencing;
+  final String? description;
+  final String? phone;
+  final String? website;
+  final String? venuePhoto;
+  final String? buildingPhoto;
+  final String createdAt;
+  final String updatedAt;
+  final int v;
+  final String? appId;
+  final String? appStoreId;
+  final String? deeplinkUrl;
+  final bool globalAnnotation;
+  final bool locked;
+  final List<List<double>> boundary;
 
-  Buildings(
-      {this.globalAnnotation,
-      this.locked,
-      this.sId,
-      this.initialBuildingName,
-      this.initialVenueName,
-      this.buildingName,
-      this.venueName,
-      this.venueCategory,
-      this.buildingCategory,
-      this.coordinates,
-      this.address,
-      this.liveStatus,
-      this.geofencing,
-      this.phone,
-      this.venuePhoto,
-      this.buildingPhoto,
-      this.workingDays,
-      this.createdAt,
-      this.updatedAt,
-      this.iV,
-      this.boundary});
-  Buildings.fromJson(Map<String, dynamic> json) {
-    globalAnnotation = json['globalAnnotation'];
-    locked = json['locked'];
-    sId = json['_id'];
-    initialBuildingName = json['initialBuildingName'];
-    initialVenueName = json['initialVenueName'];
-    buildingName = json['buildingName'];
-    venueName = json['venueName'];
-    venueCategory = json['venueCategory'];
-    buildingCategory = json['buildingCategory'];
-    coordinates = json['coordinates'].cast<double>();
-    address = json['address'];
-    liveStatus = json['liveStatus'];
-    geofencing = json['geofencing'];
-    phone = json['phone'];
-    venuePhoto = json['venuePhoto'];
-    buildingPhoto = json['buildingPhoto'];
-    if (json['workingDays'] != null) {
-      workingDays = <WorkingDays>[];
-      json['workingDays'].forEach((v) {
-        workingDays!.add(new WorkingDays.fromJson(v));
-      });
-    }
-    createdAt = json['createdAt'];
-    updatedAt = json['updatedAt'];
-    iV = json['__v'];
+  Building({
+    required this.id,
+    required this.initialBuildingName,
+    required this.initialVenueName,
+    required this.buildingName,
+    required this.venueName,
+    this.venueCategory,
+    this.buildingCategory,
+    required this.coordinates,
+    required this.address,
+    required this.liveStatus,
+    required this.geofencing,
+    this.description,
+    this.phone,
+    this.website,
+    this.venuePhoto,
+    this.buildingPhoto,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.v,
+    this.appId,
+    this.appStoreId,
+    this.deeplinkUrl,
+    required this.globalAnnotation,
+    required this.locked,
+    required this.boundary,
+  });
+
+  factory Building.fromJson(dynamic json) {
+    return Building(
+      id: json['_id'],
+      initialBuildingName: json['initialBuildingName'],
+      initialVenueName: json['initialVenueName'],
+      buildingName: json['buildingName'],
+      venueName: json['venueName'],
+      venueCategory: json['venueCategory'],
+      buildingCategory: json['buildingCategory'],
+      coordinates: List<double>.from(json['coordinates']),
+      address: json['address'],
+      liveStatus: json['liveStatus'],
+      geofencing: json['geofencing'],
+      description: json['description'] == "null" ? null : json['description'],
+      phone: json['phone'] == "null" ? null : json['phone'],
+      website: json['website'] == "null" ? null : json['website'],
+      venuePhoto: json['venuePhoto'] == "null" ? null : json['venuePhoto'],
+      buildingPhoto: json['buildingPhoto'] == "null" ? null : json['buildingPhoto'],
+      createdAt: json['createdAt'],
+      updatedAt: json['updatedAt'],
+      v: json['__v'],
+      appId: json['appId'] == "null" ? null : json['appId'],
+      appStoreId: json['appStoreId'] == "null" ? null : json['appStoreId'],
+      deeplinkUrl: json['deeplinkUrl'] == "null" ? null : json['deeplinkUrl'],
+      globalAnnotation: json['globalAnnotation'],
+      locked: json['locked'],
+      boundary: (json['boundary'] as List<dynamic>?)
+          ?.map((e) => List<double>.from(e))
+          .toList()??[],
+    );
   }
 
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['globalAnnotation'] = this.globalAnnotation;
-    data['locked'] = this.locked;
-    data['_id'] = this.sId;
-    data['initialBuildingName'] = this.initialBuildingName;
-    data['initialVenueName'] = this.initialVenueName;
-    data['buildingName'] = this.buildingName;
-    data['venueName'] = this.venueName;
-    data['venueCategory'] = this.venueCategory;
-    data['buildingCategory'] = this.buildingCategory;
-    data['coordinates'] = this.coordinates;
-    data['address'] = this.address;
-    data['liveStatus'] = this.liveStatus;
-    data['geofencing'] = this.geofencing;
-    data['phone'] = this.phone;
-    data['venuePhoto'] = this.venuePhoto;
-    data['buildingPhoto'] = this.buildingPhoto;
-    if (this.workingDays != null) {
-      data['workingDays'] = this.workingDays!.map((v) => v.toJson()).toList();
-    }
-    data['createdAt'] = this.createdAt;
-    data['updatedAt'] = this.updatedAt;
-    data['__v'] = this.iV;
+  Map<dynamic, dynamic> toJson() {
+    return {
+      '_id': id,
+      'initialBuildingName': initialBuildingName,
+      'initialVenueName': initialVenueName,
+      'buildingName': buildingName,
+      'venueName': venueName,
+      'venueCategory': venueCategory,
+      'buildingCategory': buildingCategory,
+      'coordinates': coordinates,
+      'address': address,
+      'liveStatus': liveStatus,
+      'geofencing': geofencing,
+      'description': description,
+      'phone': phone,
+      'website': website,
+      'venuePhoto': venuePhoto,
+      'buildingPhoto': buildingPhoto,
+      'createdAt': createdAt,
+      'updatedAt': updatedAt,
+      '__v': v,
+      'appId': appId,
+      'appStoreId': appStoreId,
+      'deeplinkUrl': deeplinkUrl,
+      'globalAnnotation': globalAnnotation,
+      'locked': locked,
+      'boundary': boundary,
+    };
+  }
+}
+
+class Campus extends CampusResponse{
+  final String id;
+  final String initialBuildingName;
+  final String initialVenueName;
+  final String buildingName;
+  final String venueName;
+  final String? venueCategory;
+  final String? buildingCategory;
+  final List<double> coordinates;
+  final List<dynamic> pickupCoords;
+  final String address;
+  final bool liveStatus;
+  final bool geofencing;
+  final String? description;
+  final List<dynamic> features;
+  final String? phone;
+  final String? website;
+  final String? venuePhoto;
+  final String? buildingPhoto;
+  final bool locked;
+  final List<dynamic> adminIds;
+  final List<dynamic> workingDays;
+  final String createdAt;
+  final String updatedAt;
+  final int v;
+  final String? appId;
+  final String? appStoreId;
+  final String? deeplinkUrl;
+  final bool globalAnnotation;
+  final String? styleFileUrl;
+  final List<List<double>> boundary;
+  final List<int> totalFloors;
+  final List<String> buildingNames;
+
+  Campus({
+    required this.id,
+    required this.initialBuildingName,
+    required this.initialVenueName,
+    required this.buildingName,
+    required this.venueName,
+    this.venueCategory,
+    this.buildingCategory,
+    required this.coordinates,
+    required this.pickupCoords,
+    required this.address,
+    required this.liveStatus,
+    required this.geofencing,
+    this.description,
+    required this.features,
+    this.phone,
+    this.website,
+    this.venuePhoto,
+    this.buildingPhoto,
+    required this.locked,
+    required this.adminIds,
+    required this.workingDays,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.v,
+    this.appId,
+    this.appStoreId,
+    this.deeplinkUrl,
+    required this.globalAnnotation,
+    this.styleFileUrl,
+    required this.boundary,
+    required this.totalFloors,
+    required this.buildingNames,
+  });
+
+  factory Campus.fromJson(dynamic json) {
+    return Campus(
+      id: json['_id'],
+      initialBuildingName: json['initialBuildingName'],
+      initialVenueName: json['initialVenueName'],
+      buildingName: json['buildingName'],
+      venueName: json['venueName'],
+      venueCategory: json['venueCategory'],
+      buildingCategory: json['buildingCategory'],
+      coordinates: List<double>.from(json['coordinates']),
+      pickupCoords: json['pickupCoords'] ?? [],
+      address: json['address'],
+      liveStatus: json['liveStatus'],
+      geofencing: json['geofencing'],
+      description: json['description'],
+      features: json['features'] ?? [],
+      phone: json['phone'],
+      website: json['website'],
+      venuePhoto: json['venuePhoto'],
+      buildingPhoto: json['buildingPhoto'],
+      locked: json['locked'],
+      adminIds: json['adminIds'] ?? [],
+      workingDays: json['workingDays'] ?? [],
+      createdAt: json['createdAt'],
+      updatedAt: json['updatedAt'],
+      v: json['__v'],
+      appId: json['appId'],
+      appStoreId: json['appStoreId'],
+      deeplinkUrl: json['deeplinkUrl'],
+      globalAnnotation: json['globalAnnotation'],
+      styleFileUrl: json['styleFileUrl'],
+      boundary: (json['boundary'] as List<dynamic>)
+          .map((e) => List<double>.from(e))
+          .toList(),
+      totalFloors: List<int>.from(json['totalFloors']),
+      buildingNames: List<String>.from(json['buildingNames']),
+    );
+  }
+
+  Map<dynamic, dynamic> toJson() {
+    return {
+      '_id': id,
+      'initialBuildingName': initialBuildingName,
+      'initialVenueName': initialVenueName,
+      'buildingName': buildingName,
+      'venueName': venueName,
+      'venueCategory': venueCategory,
+      'buildingCategory': buildingCategory,
+      'coordinates': coordinates,
+      'pickupCoords': pickupCoords,
+      'address': address,
+      'liveStatus': liveStatus,
+      'geofencing': geofencing,
+      'description': description,
+      'features': features,
+      'phone': phone,
+      'website': website,
+      'venuePhoto': venuePhoto,
+      'buildingPhoto': buildingPhoto,
+      'locked': locked,
+      'adminIds': adminIds,
+      'workingDays': workingDays,
+      'createdAt': createdAt,
+      'updatedAt': updatedAt,
+      '__v': v,
+      'appId': appId,
+      'appStoreId': appStoreId,
+      'deeplinkUrl': deeplinkUrl,
+      'globalAnnotation': globalAnnotation,
+      'styleFileUrl': styleFileUrl,
+      'boundary': boundary,
+      'totalFloors': totalFloors,
+      'buildingNames': buildingNames,
+    };
+  }
+}
+
+class CampusMeta extends CampusResponse {
+  List<int>? totalFloors;
+  List<String>? buildingNames;
+
+  CampusMeta({this.totalFloors, this.buildingNames});
+
+  factory CampusMeta.fromJson(Map<dynamic, dynamic> json) {
+    return CampusMeta(
+      totalFloors: (json['totalFloors'] as List?)?.map((e) => int.parse(e.toString())).toList(),
+      buildingNames: (json['buildingNames'] as List?)?.map((e) => e.toString()).toList(),
+    );
+  }
+  Map<dynamic, dynamic> toJson() {
+    final Map<dynamic, dynamic> data = new Map<dynamic, dynamic>();
+    data['totalFloors'] = this.totalFloors;
+    data['buildingNames'] = this.buildingNames;
     return data;
   }
 }
 
-class WorkingDays {
-  String? day;
-  String? openingTime;
-  String? closingTime;
-  String? sId;
-
-  WorkingDays({this.day, this.openingTime, this.closingTime, this.sId});
-
-  WorkingDays.fromJson(Map<String, dynamic> json) {
-    day = json['day'];
-    openingTime = json['openingTime'];
-    closingTime = json['closingTime'];
-    sId = json['_id'];
+CampusResponse parseCampusResponse(Map<dynamic, dynamic> json) {
+  if (json.containsKey('globalAnnotation') ||
+      json.containsKey('coordinates') ||
+      json.containsKey('_id')) {
+    return Campus.fromJson(json);
+  }
+  if (json.containsKey('totalFloors') ||
+      json.containsKey('buildingNames')) {
+    return CampusMeta.fromJson(json);
   }
 
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['day'] = this.day;
-    data['openingTime'] = this.openingTime;
-    data['closingTime'] = this.closingTime;
-    data['_id'] = this.sId;
-    return data;
-  }
+  throw Exception("Unknown Campus API format");
 }
 
-class Campus {
-  bool? globalAnnotation;
-  String? sId;
-  String? initialBuildingName;
-  String? initialVenueName;
-  String? buildingName;
-  String? venueName;
-  List<double>? coordinates;
-  String? address;
-  bool? liveStatus;
-  bool? geofencing;
-  bool? locked;
-  String? createdAt;
-  String? updatedAt;
-  int? iV;
-  List<List>? boundary;
-
-  Campus(
-      {this.globalAnnotation,
-      this.sId,
-      this.initialBuildingName,
-      this.initialVenueName,
-      this.buildingName,
-      this.venueName,
-      this.coordinates,
-      this.address,
-      this.liveStatus,
-      this.geofencing,
-      this.locked,
-      this.createdAt,
-      this.updatedAt,
-      this.iV,
-      this.boundary});
-
-  Campus.fromJson(Map<String, dynamic> json) {
-    globalAnnotation = json['globalAnnotation'];
-    sId = json['_id'];
-    initialBuildingName = json['initialBuildingName'];
-    initialVenueName = json['initialVenueName'];
-    buildingName = json['buildingName'];
-    venueName = json['venueName'];
-    coordinates = json['coordinates'].cast<double>();
-    address = json['address'];
-    liveStatus = json['liveStatus'];
-    geofencing = json['geofencing'];
-    locked = json['locked'];
-    createdAt = json['createdAt'];
-    updatedAt = json['updatedAt'];
-    iV = json['__v'];
-  }
-
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['globalAnnotation'] = this.globalAnnotation;
-    data['_id'] = this.sId;
-    data['initialBuildingName'] = this.initialBuildingName;
-    data['initialVenueName'] = this.initialVenueName;
-    data['buildingName'] = this.buildingName;
-    data['venueName'] = this.venueName;
-    data['coordinates'] = this.coordinates;
-    data['address'] = this.address;
-    data['liveStatus'] = this.liveStatus;
-    data['geofencing'] = this.geofencing;
-    data['locked'] = this.locked;
-    data['createdAt'] = this.createdAt;
-    data['updatedAt'] = this.updatedAt;
-    data['__v'] = this.iV;
-    return data;
-  }
-}
+sealed class CampusResponse {}

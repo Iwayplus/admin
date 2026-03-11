@@ -16,10 +16,8 @@ class tools {
   static patchDataModel globalData = patchDataModel();
   static bool gotBhart = false;
   static List<double> localtoglobal(int x, int y,PDM.patchDataModel? patchData) {
-
     x = x - 0;
     y = y - 0;
-
     ////
     PDM.patchDataModel Data = PDM.patchDataModel();
     if (patchData != null) {
@@ -166,6 +164,9 @@ class tools {
     return {"lat": latA, "lon": lonA};
   }
 
+
+
+
   static double distance(
       Map<String, double> first, Map<String, double> second) {
     double dist1 = pow((second["localy"]! - first["localy"]!), 2) as double;
@@ -246,4 +247,288 @@ class tools {
     }
   }
 
+ static List<int> globalToLocalPoints({required PDM.patchDataModel? patchData, required double lat, required double lng}) {
+    final coords = patchData?.patchData?.coordinates;
+
+    Map<String, double> globalRef(int index) => {
+      'lat': double.parse(coords![index].globalRef!.lat.toString()),
+      'lng': double.parse(coords![index].globalRef!.lng.toString()),
+    };
+
+    final xperp = findPerpendicularPointAndDistance(
+      globalRef(0),
+      globalRef(1),
+      {'lat': lat, 'lng': lng},
+    );
+
+    final yperp = findPerpendicularPointAndDistance(
+      globalRef(0),
+      globalRef(3),
+      {'lat': lat, 'lng': lng},
+    );
+
+    return [
+      (xperp['distance'] as double).round(),
+      (yperp['distance'] as double).round(),
+    ];
+  }
+
+
+  static Map<String, dynamic> findPerpendicularPointAndDistance(
+      Map<String, double> a,
+      Map<String, double> b,
+      Map<String, double> c,
+      ) {
+    const double earthRadiusFeet = 20925646.3;
+
+    double toRadians(double degrees) => degrees * pi / 180;
+    double toDegrees(double radians) => radians * 180 / pi;
+
+    Map<String, double> toCartesian(Map<String, double> point) {
+      final latRad = toRadians(point['lat']!);
+      final lngRad = toRadians(point['lng']!);
+      return {
+        'x': cos(latRad) * cos(lngRad),
+        'y': cos(latRad) * sin(lngRad),
+        'z': sin(latRad),
+      };
+    }
+
+    Map<String, double> toLatLng(Map<String, double> cart) {
+      return {
+        'lat': toDegrees(atan2(cart['z']!, sqrt(cart['x']! * cart['x']! + cart['y']! * cart['y']!))),
+        'lng': toDegrees(atan2(cart['y']!, cart['x']!)),
+      };
+    }
+
+    Map<String, double> vectorBetween(Map<String, double> p1, Map<String, double> p2) => {
+      'x': p2['x']! - p1['x']!,
+      'y': p2['y']! - p1['y']!,
+      'z': p2['z']! - p1['z']!,
+    };
+
+    double dot(Map<String, double> v1, Map<String, double> v2) =>
+        v1['x']! * v2['x']! + v1['y']! * v2['y']! + v1['z']! * v2['z']!;
+
+    Map<String, double> scaleVec(Map<String, double> v, double scalar) => {
+      'x': v['x']! * scalar,
+      'y': v['y']! * scalar,
+      'z': v['z']! * scalar,
+    };
+
+    Map<String, double> addVec(Map<String, double> v1, Map<String, double> v2) => {
+      'x': v1['x']! + v2['x']!,
+      'y': v1['y']! + v2['y']!,
+      'z': v1['z']! + v2['z']!,
+    };
+
+    final aCart = toCartesian(a);
+    final bCart = toCartesian(b);
+    final cCart = toCartesian(c);
+
+    final ab = vectorBetween(aCart, bCart);
+    final ac = vectorBetween(aCart, cCart);
+
+    final t = dot(ac, ab) / dot(ab, ab);
+    final dCart = addVec(aCart, scaleVec(ab, t));
+
+    final d = toLatLng(dCart);
+
+    final cdVector = vectorBetween(dCart, cCart);
+    final magnitudeCD = sqrt(dot(cdVector, cdVector));
+    final distanceCD = asin(magnitudeCD) * earthRadiusFeet;
+
+    return {
+      'distance': distanceCD,
+      'pointD': d,
+    };
+  }
+
+
+  static List<int> hexToBytes(String hex) {
+    hex = hex.replaceAll("0x", "").replaceAll(" ", "");
+    final result = <int>[];
+    for (int i = 0; i < hex.length; i += 2) {
+      result.add(int.parse(hex.substring(i, i + 2), radix: 16));
+    }
+    return result;
+  }
+
+  // static Map<String, double>? globalToLocalPoints(
+  //     {required PDM.patchDataModel? patchData,
+  //      required double lat,
+  //       required double lng,
+  //     }
+  // ) {
+  //
+  //   lat = lat - 0;
+  //   lng = lng - 0;
+  //   ////
+  //   PDM.patchDataModel Data = PDM.patchDataModel();
+  //   if (patchData != null) {
+  //     Data = patchData;
+  //     if(patchData.patchData!.fileName == "004ef3cf-9294-4171-adc0-1554759d5400_IITCampus-BhartiSchool-ground_ground.png"){
+  //       gotBhart = true;
+  //     }
+  //
+  //   } else {
+  //     Data = globalData;
+  //   }
+  //   List<Map<String, double>> ref = [
+  //     {
+  //       "lat": double.parse(Data.patchData!.coordinates![2].globalRef!.lat!),
+  //       "lon": double.parse(Data.patchData!.coordinates![2].globalRef!.lng!),
+  //       "localx": double.parse(Data.patchData!.coordinates![2].localRef!.lng!),
+  //       "localy": double.parse(Data.patchData!.coordinates![2].localRef!.lat!),
+  //     },
+  //     {
+  //       "lat": double.parse(Data.patchData!.coordinates![1].globalRef!.lat!),
+  //       "lon": double.parse(Data.patchData!.coordinates![1].globalRef!.lng!),
+  //       "localx": double.parse(Data.patchData!.coordinates![1].localRef!.lng!),
+  //       "localy": double.parse(Data.patchData!.coordinates![1].localRef!.lat!),
+  //     },
+  //     {
+  //       "lat": double.parse(Data.patchData!.coordinates![0].globalRef!.lat!),
+  //       "lon": double.parse(Data.patchData!.coordinates![0].globalRef!.lng!),
+  //       "localx": double.parse(Data.patchData!.coordinates![0].localRef!.lng!),
+  //       "localy": double.parse(Data.patchData!.coordinates![0].localRef!.lat!),
+  //     },
+  //     {
+  //       "lat": double.parse(Data.patchData!.coordinates![3].globalRef!.lat!),
+  //       "lon": double.parse(Data.patchData!.coordinates![3].globalRef!.lng!),
+  //       "localx": double.parse(Data.patchData!.coordinates![3].localRef!.lng!),
+  //       "localy": double.parse(Data.patchData!.coordinates![3].localRef!.lat!),
+  //     },
+  //   ];
+  //
+  // int d1 = (getHaversineDistance2(ref[0]['lat']!, ref[0]['lon']!, lat, lng) * 3).toInt();
+  // int d2 = (getHaversineDistance2(ref[1]['lat']!, ref[1]['lon']!, lat, lng) * 3).toInt();
+  // int d3 = (getHaversineDistance2(ref[2]['lat']!, ref[2]['lon']!, lat, lng) * 3).toInt();
+  //
+  // Circle circle1 = Circle(
+  // localx: ref[0]['localx']!,
+  // localy: ref[0]['localy']!,
+  // distance: d1,
+  // );
+  //
+  // Circle circle2 = Circle(
+  //   localx: ref[1]['localx']!,
+  //   localy: ref[1]['localy']!,
+  // distance: d2,
+  // );
+  //
+  // Circle circle3 = Circle(
+  //   localx: ref[2]['localx']!,
+  //   localy: ref[2]['localy']!,
+  // distance: d3,
+  // );
+  //
+  // return circleIntersection(circle1, circle2, circle3);
+  // }
+  //
+  // static double getHaversineDistance2(
+  // double firstLat,
+  // double firstLng,
+  // double secondLat,
+  // double secondLng,
+  // ) {
+  // const double earthRadius = 6371; // km
+  //
+  // final double diffLat = ((secondLat - firstLat) * pi) / 180;
+  // final double diffLng = ((secondLng - firstLng) * pi) / 180;
+  //
+  // final double arc = cos((firstLat * pi) / 180) *
+  // cos((secondLat * pi) / 180) *
+  // sin(diffLng / 2) *
+  // sin(diffLng / 2) +
+  // sin(diffLat / 2) * sin(diffLat / 2);
+  //
+  // final double line = 2 * atan2(sqrt(arc), sqrt(1 - arc));
+  // final double distance = earthRadius * line * 1000;
+  //
+  // return distance;
+  // }
+  //
+  // static Map<String, double>? circleIntersection(
+  // Circle circle1,
+  // Circle circle2,
+  // Circle circle3,
+  // ) {
+  // // Extract parameters for each circle
+  // final double x1 = circle1.localx;
+  // final double y1 = circle1.localy;
+  // final double r1 = circle1.distance.toDouble();
+  //
+  // final double x2 = circle2.localx;
+  // final double y2 = circle2.localy;
+  // final double r2 = circle2.distance.toDouble();
+  //
+  // final double x3 = circle3.localx;
+  // final double y3 = circle3.localy;
+  // final double r3 = circle3.distance.toDouble();
+  //
+  // // Calculate distances between centers of circles
+  // final double d12 = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
+  // final double d23 = sqrt(pow(x3 - x2, 2) + pow(y3 - y2, 2));
+  // final double d31 = sqrt(pow(x1 - x3, 2) + pow(y1 - y3, 2));
+  //
+  // // Check if any circle is fully contained within another circle
+  // if (d12 < r1 + r2 && d23 < r2 + r3 && d31 < r3 + r1) {
+  // print("Circles are fully contained within each other. Infinite intersections.");
+  // return null;
+  // }
+  //
+  // // Check for no intersection cases
+  // if (d12 > r1 + r2 && d23 > r2 + r3 && d31 > r3 + r1) {
+  // print("Circles do not intersect.");
+  // return null;
+  // }
+  //
+  // // Calculate intersection points
+  // final double A = 2 * (x2 - x1);
+  // final double B = 2 * (y2 - y1);
+  // final double C = (pow(r1, 2) - pow(r2, 2) - pow(x1, 2) + pow(x2, 2) - pow(y1, 2) + pow(y2, 2)).toDouble();
+  // final double D = 2 * (x3 - x2);
+  // final double E = 2 * (y3 - y2);
+  // final double F = (pow(r2, 2) - pow(r3, 2) - pow(x2, 2) + pow(x3, 2) - pow(y2, 2) + pow(y3, 2)).toDouble();
+  //
+  // // Calculate intersection coordinates
+  // final double x = (C * E - F * B) / (E * A - B * D);
+  // final double y = (C * D - A * F) / (B * D - A * E);
+  //
+  // return {'x': x, 'y': y};
+  // }
+
+}
+class RefPoint {
+  final double lat;
+  final double lng;
+  final double localx;
+  final double localy;
+
+  RefPoint({
+    required this.lat,
+    required this.lng,
+    required this.localx,
+    required this.localy,
+  });
+}
+
+class Circle {
+  final double localx;
+  final double localy;
+  final int distance;
+
+  Circle({
+    required this.localx,
+    required this.localy,
+    required this.distance,
+  });
+}
+
+class Point {
+  final double x;
+  final double y;
+
+  Point(this.x, this.y);
 }

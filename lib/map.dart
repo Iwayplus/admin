@@ -91,8 +91,6 @@ class _googleMapState extends State<googleMap> {
     wsocket.message["userId"]=user;
   }
 
-
-
   Future<void> requestBluetoothConnectPermission() async {
     final PermissionStatus permissionStatus = await Permission.bluetoothScan.request();
     if (permissionStatus.isGranted) {
@@ -138,6 +136,7 @@ class _googleMapState extends State<googleMap> {
 
   Future<void> createRooms(String bid) async {
     print("selected building id:${buildingAllApi.selectedBuildingID} ${bid}");
+    buildingAllApi.selectedBuildingID=bid;
     await patchController.createPatch(bid);
     fitPolygonInScreen(patchController.polygons.first);
     await polygonController.renderRooms(0, patchController.data,bid);

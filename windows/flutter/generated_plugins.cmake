@@ -3,6 +3,9 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  adapter_manager
+  connectivity_plus
+  flutter_blue_plus_winrt
   geolocator_windows
   permission_handler_windows
   share_plus

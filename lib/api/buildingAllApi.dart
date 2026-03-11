@@ -1,5 +1,6 @@
 import 'dart:collection';
 import 'dart:convert';
+import 'package:admin/config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as g;
@@ -12,13 +13,15 @@ import '../navigationTools.dart';
 import 'RefreshTokenAPI.dart';
 
 class buildingAllApi {
-  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/secured/building/all" : "https://dev.iwayplus.in/secured/building/all";
+  final String baseUrl = "${AppConfig.baseUrl}/secured/building/all";
   String accessToken = "";
   static String selectedBuildingID="";
   static String selectedBuildingName="";
   static String selectedVenue="";
   static Map<String,g.LatLng> allBuildingID = {};
   static String outdoorID = "";
+
+  static bool isGlobalAnnotation=false;
 
   static void setSelectedBuildingID(String value)async{
     print("inside inside set id $value");

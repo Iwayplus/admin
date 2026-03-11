@@ -8,11 +8,26 @@ import 'LOGIN SIGNUP/SignIn.dart';
 import 'SharedPreferenceHelper.dart';
 import 'UserLog.dart';
 import 'mainScreen.dart';
+import 'package:unified_map_view/unified_map_view.dart';
+import 'package:mappls_gl/mappls_gl.dart';
 
 
 wsocket ws = wsocket("com.iwayplus.rni");
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Mappls SDK with credentials
+  MapplsAccountManager.setMapSDKKey("6889110931e58e2b999fb9131f78cc2e");
+  MapplsAccountManager.setRestAPIKey("6889110931e58e2b999fb9131f78cc2e");
+  MapplsAccountManager.setAtlasClientId(
+    "96dHZVzsAuuuN3sEWtPRTabth0A-fz0ZseWHjAq-2lqZV1-b6Tus_MG1v2j-R_o60cIYwVrzPH9ns6LmM1VKvQ==",
+  );
+  MapplsAccountManager.setAtlasClientSecret(
+    "lrFxI-iSEg9he_iO5iRlieP4vy0VnS26w3KGnCTD8jVPei5dJTFX7EDYjrQN1xR-8nvS-qGOIN8DiuvdoAXe4FjMN6Sg_Nsi",
+  );
+
+  // Initialize UnifiedMapView package
+  await UnifiedMapViewPackage.initialize();
   var appDocDir = await getApplicationDocumentsDirectory();
   print("appDocDir:${appDocDir.path}");
   Hive.init(appDocDir.path);
@@ -70,34 +85,34 @@ class _HomePageState extends State<HomePage> {
     print("preferencesFuture:${_preferencesFuture}");
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // TODO: implement build
-    return MaterialApp(
-      home: PDRCalibrationScreen(),
-    );
-  }
-
   // @override
   // Widget build(BuildContext context) {
-  //   return FutureBuilder<SharedPreferenceHelper>(
-  //     future: _preferencesFuture,
-  //     builder: (context, snapshot) {
-  //       if (snapshot.connectionState == ConnectionState.waiting) {
-  //         return SignIn();
-  //       } else if (snapshot.hasError) {
-  //         return SignIn();
-  //       } else if (snapshot.hasData) {
-  //         print("data has been stored:${snapshot.data?.getMap("signin")}");
-  //         if (snapshot.data?.getMap("signin") == null) {
-  //           return SignIn();
-  //         } else {
-  //           return BeaconFingerprintScreen();
-  //         }
-  //       } else {
-  //         return SignIn();
-  //       }
-  //     },
+  //   // TODO: implement build
+  //   return MaterialApp(
+  //     home: PDRCalibrationScreen(),
   //   );
   // }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<SharedPreferenceHelper>(
+      future: _preferencesFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return SignIn();
+        } else if (snapshot.hasError) {
+          return SignIn();
+        } else if (snapshot.hasData) {
+          print("data has been stored:${snapshot.data?.getMap("signin")}");
+          if (snapshot.data?.getMap("signin") == null) {
+            return SignIn();
+          } else {
+            return BeaconFingerprintScreen();
+          }
+        } else {
+          return SignIn();
+        }
+      },
+    );
+  }
 }

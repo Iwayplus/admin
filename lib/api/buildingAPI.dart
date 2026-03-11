@@ -16,7 +16,7 @@ class BuildingAPI {
   String accessToken = "";
 
 
-  Future<Building?> fetchBuildData() async {
+  Future<BuildingData?> fetchBuildData() async {
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
     accessToken = await prefs.getMap("signin")!["accessToken"];
     print("buildingAllApi.selectedVenue:${buildingAllApi.selectedVenue}");
@@ -35,7 +35,7 @@ class BuildingAPI {
     print("response code:${response.statusCode}");
     if (response.statusCode == 200) {
       final responseList = json.decode(response.body);
-        final building = Building.fromJson(responseList as Map<String, dynamic>);
+        final building = BuildingData.fromJson(responseList as Map<String, dynamic>);
         print("buildingss:${building}");
         return building;
     } else if (response.statusCode == 403) {
@@ -54,7 +54,7 @@ class BuildingAPI {
 
       if (response.statusCode == 200) {
         final responseList = json.decode(response.body);
-          final building = Building.fromJson(responseList as Map<String, dynamic>);
+          final building = BuildingData.fromJson(responseList as Map<String, dynamic>);
           print("buildingss:${building}");
           return building;
       } else {

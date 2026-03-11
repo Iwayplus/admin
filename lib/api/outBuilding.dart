@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:admin/config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
@@ -8,7 +9,7 @@ import 'RefreshTokenAPI.dart';
 
 
 class outBuilding {
-  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/secured/outdoor" : "https://maps.iwayplus.in/secured/outdoor";
+  final String baseUrl = "${AppConfig.baseUrl}/secured/outdoor";
   String accessToken = "";
 
   Future<outdoormodel?> outbuilding(List<String> ids) async {

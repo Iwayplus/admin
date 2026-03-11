@@ -11,6 +11,7 @@ import 'package:flutter_compass/flutter_compass.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hive/hive.dart';
+import 'package:localization_engine/localization_engine.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:wifi_scan/wifi_scan.dart';
 
@@ -94,7 +95,10 @@ class Fingerprinting{
       icon: newIcon ?? await _svgToBitmapDescriptor('assets/exitservice.svg', Size(40, 40)),
     );
     _dotMarkers.add(updatedMarker);
-    _updateMarkers();
+    if(!buildingAllApi.isGlobalAnnotation){
+      _updateMarkers();
+    }
+
   }
   set context(BuildContext value) {
     _context = value;
@@ -169,7 +173,7 @@ class Fingerprinting{
     timer?.cancel();
     timer = null;
     FingerPrintingPannel.hidePanel();
-    _updateMarkers();
+    // _updateMarkers();
   }
 
   Future<int> addBeaconMarkers(
@@ -750,15 +754,10 @@ class Fingerprinting{
   }
 
   BLEManager bleManager = BLEManager();
+  StreamSubscription<Map<String, dynamic>?>? rawBluetoothScanResults;
 
   Future<void> collectSensorDataEverySecond() async {
-    if (apibeaconmap != null) {
-      bleManager.startScanning(bufferSize: 5, streamFrequency: 5, duration: null);
-    } else {
-      HelperClass.showToast("Getting beacon data!!");
-    }
-
-    _startListeningToScannedResults();
+    /// Start raw scanning
     data = Data(position: "${userPosition?.coordx},${userPosition?.coordy},$floor");
 
     gps.startGpsUpdates();
@@ -776,44 +775,48 @@ class Fingerprinting{
       theta = event.heading!;
     });
 
-    // _Lightsubscription = _light.lightSensorStream.listen((value) {
-    //   _lightValue = value;
-    // });
-
-    /// Buffer for collecting multiple RSSI values per beacon per second
+    /// Buffer for collecting RSSI values per beacon per second
     Map<String, List<int>> _beaconRssiBuffer = {};
-
-    /// Bluetooth beacon stream listener
-    bleManager.bufferedDeviceStream.listen((data) {
-      _beaconRssiBuffer.putIfAbsent(data.key, ()=>[]);
-      _beaconRssiBuffer[data.key]!.add(data.value);
-    });
+    /// NEW BLE raw stream listener
+    rawBluetoothScanResults =
+        LocalizationEngine.rawBluetoothScanResults.listen((event) {
+          if(event==null)return;
+          final String name = event['name'];
+          final int rssi = event['rssi'];
+          if (name.toLowerCase().contains('iw')) {
+            _beaconRssiBuffer.putIfAbsent(name, () => []);
+            _beaconRssiBuffer[name]!.add(rssi);
+            print("Beacon: $name -> ${_beaconRssiBuffer[name]}");
+          }
+        });
+    await LocalizationEngine.startScanning(
+      immediateEmit: true,
+      venueName: "DelhiMetro",
+    );
 
     /// Timer to collect and flush data every second
-
     timer = Timer.periodic(Duration(seconds: 1), (timer) async {
-      List<Beacon> beacons = []; // Persistent list outside the timer
+
+      List<Beacon> beacons = [];
+
       print("inside loop1 ${_beaconRssiBuffer.length}");
+
       _beaconRssiBuffer.forEach((key, rssiList) {
-        print("inside loop2 ${apibeaconmap}");
-        print("yfyuvy ${apibeaconmap != null && apibeaconmap![key] != null && rssiList.isNotEmpty}");
-        if (apibeaconmap != null && rssiList.isNotEmpty) {
-          final existingIndex = beacons.indexWhere((b) => b.beaconMacId == key);
-          print("existingIndex ${existingIndex} for ${key}");
-          if (existingIndex != -1) {
-            // Beacon already exists — append RSSI values
-            beacons[existingIndex].beaconRssi.addAll(rssiList);
-          } else {
-            beacons.add(Beacon(
+        if (rssiList.isNotEmpty) {
+          beacons.add(
+            Beacon(
               beaconMacId: key,
-              beaconRssi: [...rssiList], // clone to avoid future mutation
-            ));
-          }
+              beaconRssi: List<int>.from(rssiList), // clone
+            ),
+          );
+
         }
       });
-      _beaconRssiBuffer.clear(); // Clear for next second
 
-      print("Accumulated Beacons: ${beacons.map((b) => "${b.beaconMacId}: ${b.beaconRssi.length} RSSIs").toList()}");
+      // _beaconRssiBuffer.clear();
+
+      print("Accumulated Beacons: ${beacons.map((b) =>
+      "${b.beaconMacId}: ${b.beaconRssi.length} RSSIs").toList()}");
 
       var gpsData = await fetchGpsData();
       var wifi = await fetchWifiData();
@@ -822,7 +825,7 @@ class Fingerprinting{
       var lux = await fetchLux();
 
       var fingerprint = SensorFingerprint(
-        beacons: beacons.isEmpty?null:beacons,
+        beacons: beacons.isEmpty ? null : beacons,
         wifi: wifi,
         gpsData: gpsData,
         magnetometerData: magnetometerData,
@@ -836,8 +839,115 @@ class Fingerprinting{
 
       print("data.toJson() ${data?.toJson()}");
     });
-
   }
+
+  void startScanning()async{
+    rawBluetoothScanResults =
+        LocalizationEngine.rawBluetoothScanResults.listen((event) {
+          print("event $event");
+          if (event != null) {
+            event.forEach((key, value) {
+              if(key=='name' || key=='rssi'){
+                print("beacon:${value}");
+              }
+            });
+          }
+        });
+    await LocalizationEngine.startScanning(
+      immediateEmit: true,
+      venueName: "DelhiMetro",
+    );
+  }
+
+
+  // Future<void> collectSensorDataEverySecond() async {
+  //     bleManager.startScanning(bufferSize: 5, streamFrequency: 5, duration: null);
+  //
+  //   _startListeningToScannedResults();
+  //   data = Data(position: "${userPosition?.coordx},${userPosition?.coordy},$floor");
+  //
+  //   gps.startGpsUpdates();
+  //   gps.positionStream.listen((position) {
+  //     gpsPosition = position;
+  //   });
+  //
+  //   accelerometerEvents.listen((AccelerometerEvent event) {
+  //     _x = event.x;
+  //     _y = event.y;
+  //     _z = event.z;
+  //   });
+  //
+  //   FlutterCompass.events!.listen((event) {
+  //     theta = event.heading!;
+  //   });
+  //
+  //   // _Lightsubscription = _light.lightSensorStream.listen((value) {
+  //   //   _lightValue = value;
+  //   // });
+  //
+  //   /// Buffer for collecting multiple RSSI values per beacon per second
+  //   Map<String, List<int>> _beaconRssiBuffer = {};
+  //
+  //   /// Bluetooth beacon stream listener
+  //   bleManager.bufferedDeviceStream.listen((data) {
+  //     if(data.key.toLowerCase().contains('iw'))
+  //       {
+  //         _beaconRssiBuffer.putIfAbsent(data.key, ()=>[]);
+  //         _beaconRssiBuffer[data.key]!.add(data.value);
+  //       }
+  //
+  //   });
+  //
+  //   /// Timer to collect and flush data every second
+  //
+  //   timer = Timer.periodic(Duration(seconds: 1), (timer) async {
+  //     List<Beacon> beacons = []; // Persistent list outside the timer
+  //     print("inside loop1 ${_beaconRssiBuffer.length}");
+  //     _beaconRssiBuffer.forEach((key, rssiList) {
+  //       print("inside loop2 ${apibeaconmap}");
+  //       print("yfyuvy $rssiList.isNotEmpty}");
+  //       if (rssiList.isNotEmpty) {
+  //         final existingIndex = beacons.indexWhere((b) => b.beaconMacId == key);
+  //         print("existingIndex ${existingIndex} for ${key}");
+  //         if (existingIndex != -1) {
+  //           // Beacon already exists — append RSSI values
+  //           beacons[existingIndex].beaconRssi.addAll(rssiList);
+  //         } else {
+  //           beacons.add(Beacon(
+  //             beaconMacId: key,
+  //             beaconRssi: [...rssiList], // clone to avoid future mutation
+  //           ));
+  //         }
+  //       }
+  //     });
+  //     _beaconRssiBuffer.clear(); // Clear for next second
+  //
+  //     print("Accumulated Beacons: ${beacons.map((b) => "${b.beaconMacId}: ${b.beaconRssi.length} RSSIs").toList()}");
+  //
+  //     var gpsData = await fetchGpsData();
+  //     var wifi = await fetchWifiData();
+  //     var magnetometerData = await fetchMagnetometerData();
+  //     var accelerometerData = await fetchAccelerometerData();
+  //     var lux = await fetchLux();
+  //
+  //     var fingerprint = SensorFingerprint(
+  //       beacons: beacons.isEmpty?null:beacons,
+  //       wifi: wifi,
+  //       gpsData: gpsData,
+  //       magnetometerData: magnetometerData,
+  //       accelerometerData: accelerometerData,
+  //       lux: lux,
+  //       timeStamp: dateFormat.format(DateTime.now().toUtc()),
+  //     );
+  //
+  //     data?.sensorFingerprint ??= [];
+  //     data?.sensorFingerprint?.add(fingerprint);
+  //
+  //     print("data.toJson() ${data?.toJson()}");
+  //   });
+  //
+  // }
+
 
 
   void checkAndAddMarker(
@@ -859,10 +969,12 @@ class Fingerprinting{
 
   Future<bool> stopCollectingData() async {
     print("buildingAllApi.selectedBuildingID:${buildingAllApi.selectedBuildingID}");
-    buildingAllApi.selectedBuildingID="65d887a5db333f89457145f6";
+    // buildingAllApi.selectedBuildingID="696f514c1caa6fd666e58a74";
     timer?.cancel();
     bluetoothScanAndroidClass.stopScan();
     bleManager.stopScanning();
+    await LocalizationEngine.stopScanning();
+    await LocalizationEngine.dispose();
     //cancel beacon stream here
     return await fingerPrintingApi().Finger_Printing_API(buildingAllApi.selectedBuildingID, data!);
   }

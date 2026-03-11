@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:admin/config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
@@ -7,7 +8,7 @@ import '../SharedPreferenceHelper.dart';
 import 'RefreshTokenAPI.dart';
 
 class PolyLineApi {
-  final String baseUrl = kDebugMode? "https://dev.iwayplus.in/secured/polyline" : "https://dev.iwayplus.in/secured/polyline";
+  final String baseUrl = "${AppConfig.baseUrl}/secured/polyline";
   String accessToken = "";
   Future<polylinedata> fetchPolyData(String id, {bool outdoor = false}) async {
     print("building id:${id}");
