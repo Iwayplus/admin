@@ -791,7 +791,7 @@ class Fingerprinting{
         });
     await LocalizationEngine.startScanning(
       immediateEmit: true,
-      venueName: "DelhiMetro",
+      venueName: buildingAllApi.selectedVenue,
     );
 
     /// Timer to collect and flush data every second
@@ -812,6 +812,8 @@ class Fingerprinting{
 
         }
       });
+
+      _beaconRssiBuffer.clear();
 
       // _beaconRssiBuffer.clear();
 
@@ -855,7 +857,7 @@ class Fingerprinting{
         });
     await LocalizationEngine.startScanning(
       immediateEmit: true,
-      venueName: "DelhiMetro",
+      venueName: buildingAllApi.selectedVenue,
     );
   }
 

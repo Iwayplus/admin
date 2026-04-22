@@ -32,10 +32,10 @@ dependencies:
     sdk: flutter
 
   localization_engine:
-    #    git:
-    #      url: https://github.com/iisthehimanshu/localization_engine.git
-    #      ref: main
-    path: ../localization_engine
+        git:
+          url: https://github.com/iisthehimanshu/localization_engine.git
+          ref: main
+#    path: ../localization_engine
 
   unified_map_view:
 #          git:
@@ -55,7 +55,7 @@ dependencies:
   flutter_compass: ^0.8.0
   cupertino_icons: ^1.0.6
   sensors_plus: ^4.0.2
-  intl: ^0.20.1
+  intl:
   action_slider: ^0.7.0
   fluttertoast: ^8.2.4
   path_provider: ^2.1.5

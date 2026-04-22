@@ -65,10 +65,6 @@ class _BeaconFingerprintScreenState extends State<BeaconFingerprintScreen> {
         }
         // _latestScan();
       }
-      LocalizationEngine.startScanning(
-        immediateEmit: true,
-        venueName: buildingAllApi.selectedVenue,
-      );
     });
   }
 

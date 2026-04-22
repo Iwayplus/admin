@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:action_slider/action_slider.dart';
-import 'package:admin/api/buildingAllApi.dart';
+import '../../api/buildingAllApi.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -109,7 +109,7 @@ class _pinLandmarkState extends State<pinLandmark> {
                           child: SvgPicture.asset("assets/dot.svg")),
                     ],
                   ),
-                )
+                ),
               ],
             ),
           ),

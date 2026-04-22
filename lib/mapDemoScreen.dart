@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:admin/config.dart';
 import 'package:admin/fingerprinting/fingerprinting.dart';
 import 'package:admin/patchController.dart';
 import 'package:flutter/material.dart';
@@ -95,7 +96,7 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
         bearing: 0.0,
         // tilt: 0.0,
       ),
-      url: "https://maps.iwayplus.in",
+      url: AppConfig.baseUrl,
     );
     // buildingAllApi.selectedBuildingName=_mapController.focusedBuildingName;
     //     buildingAllApi.selectedBuildingName=_mapController.focusedVenueName;
@@ -117,34 +118,7 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
   /// Load GeoJSON data and add markers
   Future<void> _loadMapData() async {
     try {
-      // Example: Load GeoJSON from assets
-      // await _mapController.loadGeoJsonFromAsset('assets/data.geojson');
 
-      // Example: Add a user marker
-      final userMarker = GeoJsonMarker(
-        id: "user-marker",
-        position: MapLocation(
-          latitude: 28.54368402795895,
-          longitude: 77.18750616904389,
-        ),
-        title: "Current Location",
-        snippet: "You are here",
-        assetPath: 'packages/unified_map_view/assets/markers/user.png',
-        iconName: "User",
-        priority: true,
-        imageSize: const Size(35, 35),
-        anchor: const Offset(0.51, 0.785),
-        compassBasedRotation: true,
-      );
-      await _mapController.addUserMarker(userMarker);
-      // Move camera to user location
-      await _mapController.moveCamera(
-        MapLocation(
-          latitude: 28.54368402795895,
-          longitude: 77.18750616904389,
-        ),
-        zoom: 15.0,
-      );
       if(_mapController.focusedBuilding!=null){
         buildingAllApi.saveBid(_mapController.focusedBuilding!);
         createRooms(_mapController.focusedBuilding!);
@@ -215,6 +189,11 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
                 loadFingerprintingData(floor!);
               }
             } ,),
+          ),
+          Positioned(
+            bottom: 200,
+            right: 16,
+            child: Text(buildingAllApi.selectedBuildingID),
           ),
           SafeArea(child: widget.fingerprinting.FingerPrintingPannel.getPanelWidget(context)),
         ],
