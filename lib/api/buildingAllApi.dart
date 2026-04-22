@@ -15,9 +15,9 @@ import 'RefreshTokenAPI.dart';
 class buildingAllApi {
   final String baseUrl = "${AppConfig.baseUrl}/secured/building/all";
   String accessToken = "";
-  static String selectedBuildingID="";
-  static String selectedBuildingName="";
-  static String selectedVenue="";
+  static String selectedBuildingID="69d8c6a185d80d552c022653";
+  static String selectedBuildingName="IwayplusOffice";
+  static String selectedVenue="Iwayplus";
   static Map<String,g.LatLng> allBuildingID = {};
   static String outdoorID = "";
 
@@ -66,7 +66,7 @@ class buildingAllApi {
       print("${building.buildingName}   <>    ${building.coordinates}");
       double distance = tools.calculateAerialDist(userPosition.latitude, userPosition.longitude, building.coordinates![0], building.coordinates![1]);
       if(distance<d){
-        print("selecting building ${building.buildingName} ${selectedVenue}");
+        print("selecting building ${building.sId!} ${building.buildingName} ${building.venueName!}");
         selectedBuildingID = building.sId!;
         selectedBuildingName = building.buildingName!;
         selectedVenue = building.venueName!;
