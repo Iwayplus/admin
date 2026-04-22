@@ -252,7 +252,6 @@ class _BeaconFingerprintScreenState extends State<BeaconFingerprintScreen> {
                               .toList();
 
                           return Wrap(
-                            spacing: 12,
                             runSpacing: 5,
                             children: filteredBeacons.asMap().entries.map((entry) {
                               final i = entry.key;
@@ -372,7 +371,7 @@ class _BeaconFingerprintScreenState extends State<BeaconFingerprintScreen> {
         });
       },
       child: Container(
-        width: 160,
+        width: 200,
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.07),
@@ -403,20 +402,7 @@ class _BeaconFingerprintScreenState extends State<BeaconFingerprintScreen> {
               ),
             ),
 
-            /// READ MORE BUTTON
-            if (!isExpanded) ...[
-              const SizedBox(height: 6),
-              const Text(
-                "Read more",
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Color(0xFF38bdf8),
-                ),
-              )
-            ],
-
             /// EXPANDED CONTENT
-            if (isExpanded) ...[
               const SizedBox(height: 10),
               Container(height: 1, color: Colors.white10),
               const SizedBox(height: 10),
@@ -436,15 +422,8 @@ class _BeaconFingerprintScreenState extends State<BeaconFingerprintScreen> {
               if (tag != null) _infoRow("Tag", tag),
               const SizedBox(height: 6),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Text(
-                    "Show less",
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF38bdf8),
-                    ),
-                  ),
                   InkWell(
                     onTap: (){
                       selectedBeacon=label;
@@ -470,7 +449,6 @@ class _BeaconFingerprintScreenState extends State<BeaconFingerprintScreen> {
                   ),
                 ],
               )
-            ]
           ],
         ),
       ),
@@ -555,8 +533,9 @@ class _BeaconFingerprintScreenState extends State<BeaconFingerprintScreen> {
   }
 
   // ─── Tab tap handler ──────────────────────────────────────────────────────
-
   void _onTabTapped(int index) {
+    LocalizationEngine.stopScanning();
+    _topBeacons.clear();
     if (index == 1) {
       // Beacon Log — push directly, don't change tab
       Navigator.push(
@@ -589,8 +568,7 @@ class _BeaconFingerprintScreenState extends State<BeaconFingerprintScreen> {
 
       return;
     }
-    LocalizationEngine.stopScanning();
-    _topBeacons.clear();
+
     setState(() => _currentIndex = index);
   }
 

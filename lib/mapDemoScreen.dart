@@ -31,6 +31,7 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
 
   Future<void> createRooms(String bid) async {
     print("selected building id:${buildingAllApi.selectedBuildingID} ${bid}");
+
     buildingAllApi.selectedBuildingID=bid;
     await patchController.createPatch(bid);
   }
@@ -84,7 +85,7 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
   void _initializeMap() {
     _mapController = UnifiedMapController(
       initialProvider: MapProvider.mappls,
-      venueName: 'DelhiMetro',
+      venueName: buildingAllApi.selectedVenue,
       initialLocation: UnifiedCameraPosition(
         mapLocation: MapLocation(
           latitude: 28.6139,
@@ -145,6 +146,7 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
         zoom: 15.0,
       );
       if(_mapController.focusedBuilding!=null){
+        buildingAllApi.saveBid(_mapController.focusedBuilding!);
         createRooms(_mapController.focusedBuilding!);
         _loadFingerprintData(_mapController.focusedBuilding!,0);
       }

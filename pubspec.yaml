@@ -38,10 +38,12 @@ dependencies:
     path: ../localization_engine
 
   unified_map_view:
-          git:
-            url: https://github.com/iisthehimanshu/unified_map_view.git
-            ref: adminChanges
-#    path: ../unified_map_view
+#          git:
+#            url: https://github.com/iisthehimanshu/unified_map_view.git
+#            ref: adminChanges
+    path: ../unified_map_view
+
+
   google_maps_flutter: ^2.5.3
   http: ^1.1.0
   device_info_plus: ^10.1.2

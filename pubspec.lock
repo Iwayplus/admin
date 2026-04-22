@@ -1297,11 +1297,9 @@ packages:
   unified_map_view:
     dependency: "direct main"
     description:
-      path: "."
-      ref: adminChanges
-      resolved-ref: "210b71bae67fa17f30676b8c31a77d373d482753"
-      url: "https://github.com/iisthehimanshu/unified_map_view.git"
-    source: git
+      path: "../unified_map_view"
+      relative: true
+    source: path
     version: "0.0.1"
   url_launcher:
     dependency: transitive

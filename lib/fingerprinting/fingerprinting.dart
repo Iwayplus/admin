@@ -968,8 +968,9 @@ class Fingerprinting{
   }
 
   Future<bool> stopCollectingData() async {
-    print("buildingAllApi.selectedBuildingID:${buildingAllApi.selectedBuildingID}");
+    print("buildingAllApi.selectedBuildingID:${buildingAllApi.selectedBuildingID} ");
     // buildingAllApi.selectedBuildingID="696f514c1caa6fd666e58a74";
+    buildingAllApi.selectedBuildingID=await buildingAllApi.getBid()??"";
     timer?.cancel();
     bluetoothScanAndroidClass.stopScan();
     bleManager.stopScanning();

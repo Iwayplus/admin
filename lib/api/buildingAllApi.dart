@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as g;
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../APIMODELS/buildingAll.dart';
 import '../GPS.dart';
@@ -20,7 +21,6 @@ class buildingAllApi {
   static String selectedVenue="";
   static Map<String,g.LatLng> allBuildingID = {};
   static String outdoorID = "";
-
   static bool isGlobalAnnotation=false;
 
   static void setSelectedBuildingID(String value)async{
@@ -28,6 +28,24 @@ class buildingAllApi {
     selectedBuildingID = value;
     return;
   }
+
+  static Future<void> saveBid(String bid) async {
+    final prefs = await SharedPreferences.getInstance();
+    if(prefs.getString('selectedBid')!=null){
+      if(prefs.getString('selectedBid')!=bid)
+        {
+          await prefs.remove('selectedBid');
+        }
+    }
+    await prefs.setString('selectedBid', bid);
+  }
+
+
+  static Future<String?> getBid()async{
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('selectedBid');
+  }
+
   Future<List<buildingAll>> fetchBuildingAllData() async {
     SharedPreferenceHelper prefs = await SharedPreferenceHelper.getInstance();
     accessToken=await prefs.getMap("signin")!["accessToken"];
