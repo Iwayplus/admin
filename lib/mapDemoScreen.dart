@@ -33,21 +33,23 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
   Future<void> createRooms(String bid) async {
     print("selected building id:${buildingAllApi.selectedBuildingID} ${bid}");
 
-    buildingAllApi.selectedBuildingID=bid;
+    // buildingAllApi.selectedBuildingID = bid;
     await patchController.createPatch(bid);
   }
+
   @override
   void initState() {
     super.initState();
     _initializeMap();
-    widget.fingerprinting.context=context;
+    widget.fingerprinting.context = context;
   }
 
-  Future<void> _loadFingerprintData(String bid,int floor) async {
+  Future<void> _loadFingerprintData(String bid, int floor) async {
     // Mock data - replace with your API call
     _mapController.clearMarkers();
-    var fingerPrintData = await fingerPrintingGetApi().Finger_Printing_GET_API(bid,floor.toString());
-    if(fingerPrintData!=null){
+    var fingerPrintData = await fingerPrintingGetApi().Finger_Printing_GET_API(
+        bid, floor.toString());
+    if (fingerPrintData != null) {
       _extractLocalPoints(fingerPrintData);
       _mapController.addMarkersAtLocations(_localPoints);
       print("_extractLocalPoints:${_localPoints}");
@@ -64,12 +66,21 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
       final parts = entry.location?.split(',');
       if (parts == null || parts.length < 2) return null;
 
+      // If 6 parts, lat/lng are directly in parts[4] and parts[5]
+      if (parts.length >= 6) {
+        final lng = double.tryParse(parts[4].trim());
+        final lat = double.tryParse(parts[5].trim());
+        if (lat == null || lng == null) return null;
+        print("localtoglobal:${lat}--${lng}");
+        return MapLocation(latitude: lat, longitude: lng);
+      }
+
+      // Default: 2-3 parts — use local x,y → convert to global
       final x = int.tryParse(parts[0].trim());
       final y = int.tryParse(parts[1].trim());
-
       if (x == null || y == null) return null;
 
-      // Convert local x,y to global lat,lng
+
       final List<double> latLng = tools.localtoglobal(
         x,
         y,
@@ -118,11 +129,10 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
   /// Load GeoJSON data and add markers
   Future<void> _loadMapData() async {
     try {
-
-      if(_mapController.focusedBuilding!=null){
+      if (_mapController.focusedBuilding != null) {
         buildingAllApi.saveBid(_mapController.focusedBuilding!);
         createRooms(_mapController.focusedBuilding!);
-        _loadFingerprintData(_mapController.focusedBuilding!,0);
+        _loadFingerprintData(_mapController.focusedBuilding!, 0);
       }
 
       if (mounted) {
@@ -178,24 +188,29 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
           ? Stack(
         children: [
           // Main map widget
-          UnifiedMapWidget(controller: _mapController,enablePinDrop: true,onPinDropped: _handleIfPinDropped,),
+          UnifiedMapWidget(controller: _mapController,
+            enablePinDrop: true,
+            onPinDropped: _handleIfPinDropped,),
           // Floor speed dial (bottom right)
           Positioned(
             bottom: 150,
             right: 16,
-            child: FloorSpeedDial(controller: _mapController,onFloorChanged:(int? floor){
+            child: FloorSpeedDial(
+              controller: _mapController, onFloorChanged: (int? floor) {
               print("floor changed to:${floor}");
-              if(floor!=null){
+              if (floor != null) {
                 loadFingerprintingData(floor!);
               }
-            } ,),
+            },),
           ),
           Positioned(
             bottom: 200,
             right: 16,
             child: Text(buildingAllApi.selectedBuildingID),
           ),
-          SafeArea(child: widget.fingerprinting.FingerPrintingPannel.getPanelWidget(context)),
+          SafeArea(
+              child: widget.fingerprinting.FingerPrintingPannel.getPanelWidget(
+                  context)),
         ],
       )
           : const Center(
@@ -217,29 +232,42 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
       // )
     );
   }
-  Future<void> loadFingerprintingData(int floor)async{
-   await _loadFingerprintData(_mapController.focusedBuilding!,floor);
+
+  Future<void> loadFingerprintingData(int floor) async {
+    await _loadFingerprintData(_mapController.focusedBuilding!, floor);
   }
 
-  _handleIfPinDropped(MapLocation? location){
-    if(location!=null){
-     List<int>? localCoords= tools.globalToLocalPoints(patchData: patchController.data!, lat: location.latitude, lng: location.longitude);
-      print("localCoords:${localCoords}");
-      if(localCoords!=null){
-        Nodes point=Nodes(coordx:localCoords[0].toInt(),coordy: localCoords[1]!.toInt(),lat:location.latitude ,lon:location.longitude,indexNode: "0",sId: "default-ID${DateTime.now().millisecondsSinceEpoch}" );
-        widget.fingerprinting.userPosition=point;
-        widget.fingerprinting.floor=_mapController.focusBuildingSelectedFloor??0;
+  _handleIfPinDropped(MapLocation? location) {
+    if (location != null) {
+      List<int>? localCoords = tools.globalToLocalPoints(
+          patchData: patchController.data!,
+          lat: location.latitude,
+          lng: location.longitude);
+      print("localCoords:${localCoords} ${location.latitude} ${location
+          .longitude}");
+      if (localCoords != null) {
+        Nodes point = Nodes(coordx: localCoords[0].toInt(),
+            coordy: localCoords[1]!.toInt(),
+            lat: location.latitude,
+            lon: location.longitude,
+            indexNode: "0",
+            sId: "default-ID${DateTime
+                .now()
+                .millisecondsSinceEpoch}");
+        widget.fingerprinting.userPosition = point;
+        widget.fingerprinting.floor =
+            _mapController.focusBuildingSelectedFloor ?? 0;
         print("widget.fingerprinting.floor:${widget.fingerprinting.floor}");
         widget.fingerprinting.FingerPrintingPannel.showPanel();
       }
     }
-    setState((){});
+    setState(() {});
   }
 
   @override
   void dispose() {
-    _mapController.dispose();
     super.dispose();
+    _mapController.dispose();
   }
-}
 
+}

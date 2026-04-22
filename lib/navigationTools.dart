@@ -139,7 +139,7 @@ class tools {
 
   static double getHaversineDistance(
       Map<String, double> firstLocation, Map<String, double> secondLocation) {
-    const earthRadius = 6371; // km
+    const earthRadius = 6378137.0; // WGS84 precise Earth radius in meters
     double diffLat =
         ((secondLocation["lat"]! - firstLocation["lat"]!) * pi) / 180;
     double difflon =
@@ -150,7 +150,7 @@ class tools {
         sin(difflon / 2) +
         sin(diffLat / 2) * sin(diffLat / 2);
     double line = 2 * atan2(sqrt(arc), sqrt(1 - arc));
-    double distance = earthRadius * line * 1000;
+    double distance = earthRadius * line; // no * 1000 — radius already in meters
     return distance;
   }
 
@@ -250,6 +250,9 @@ class tools {
  static List<int> globalToLocalPoints({required PDM.patchDataModel? patchData, required double lat, required double lng}) {
     final coords = patchData?.patchData?.coordinates;
 
+
+    print("globalToLocalPoints:${lat}--${lng}");
+
     Map<String, double> globalRef(int index) => {
       'lat': double.parse(coords![index].globalRef!.lat.toString()),
       'lng': double.parse(coords![index].globalRef!.lng.toString()),
@@ -267,10 +270,13 @@ class tools {
       {'lat': lat, 'lng': lng},
     );
 
+
+
     return [
       (xperp['distance'] as double).round(),
       (yperp['distance'] as double).round(),
     ];
+
   }
 
 

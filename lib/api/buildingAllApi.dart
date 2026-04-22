@@ -16,16 +16,16 @@ import 'RefreshTokenAPI.dart';
 class buildingAllApi {
   final String baseUrl = "${AppConfig.baseUrl}/secured/building/all";
   String accessToken = "";
-  static String selectedBuildingID="69d8c6a185d80d552c022653";
-  static String selectedBuildingName="IwayplusOffice";
-  static String selectedVenue="Iwayplus";
+  static final String selectedBuildingID="6821cbb2bc4412f1aa109b35";
+  static String selectedBuildingName="LectureHallComplex";
+  static String selectedVenue="IIT Delhi";
   static Map<String,g.LatLng> allBuildingID = {};
   static String outdoorID = "";
   static bool isGlobalAnnotation=false;
 
   static void setSelectedBuildingID(String value)async{
     print("inside inside set id $value");
-    selectedBuildingID = value;
+    // selectedBuildingID = value;
     return;
   }
 
@@ -85,10 +85,10 @@ class buildingAllApi {
       double distance = tools.calculateAerialDist(userPosition.latitude, userPosition.longitude, building.coordinates![0], building.coordinates![1]);
       if(distance<d){
         print("selecting building ${building.sId!} ${building.buildingName} ${building.venueName!}");
-        selectedBuildingID = building.sId!;
-        selectedBuildingName = building.buildingName!;
-        selectedVenue = building.venueName!;
-        d = distance;
+        // selectedBuildingID = building.sId!;
+        // selectedBuildingName = building.buildingName!;
+        // selectedVenue = building.venueName!;
+        // d = distance;
       }
     }
   }

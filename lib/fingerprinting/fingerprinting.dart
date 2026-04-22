@@ -758,7 +758,7 @@ class Fingerprinting{
 
   Future<void> collectSensorDataEverySecond() async {
     /// Start raw scanning
-    data = Data(position: "${userPosition?.coordx},${userPosition?.coordy},$floor");
+    data = Data(position: "${buildingAllApi.selectedBuildingID},${userPosition?.coordx},${userPosition?.coordy},$floor,${userPosition?.lon},${userPosition?.lat}");
 
     gps.startGpsUpdates();
     gps.positionStream.listen((position) {
@@ -972,7 +972,7 @@ class Fingerprinting{
   Future<bool> stopCollectingData() async {
     print("buildingAllApi.selectedBuildingID:${buildingAllApi.selectedBuildingID} ");
     // buildingAllApi.selectedBuildingID="696f514c1caa6fd666e58a74";
-    buildingAllApi.selectedBuildingID=await buildingAllApi.getBid()??"";
+    // buildingAllApi.selectedBuildingID=await buildingAllApi.getBid()??"";
     timer?.cancel();
     bluetoothScanAndroidClass.stopScan();
     bleManager.stopScanning();
