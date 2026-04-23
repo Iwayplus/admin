@@ -41,10 +41,10 @@ class fingerprintingPannel {
   }
 
   // Method to get the SlidingUpPanel widget
-  Widget getPanelWidget(BuildContext context) {
+  Widget getPanelWidget(BuildContext context,{dynamic? mapController}) {
     return SlidingUpPanel(
       controller: _panelController,
-      panel: pinLandmark(fingerprinting: fingerprinting),
+      panel: pinLandmark(fingerprinting: fingerprinting,mapController:mapController),
       minHeight: 0,
       maxHeight: 370, // Maximum height of the panel
       backdropOpacity: 0.5,

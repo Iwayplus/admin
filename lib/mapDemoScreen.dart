@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:admin/config.dart';
 import 'package:admin/fingerprinting/fingerprinting.dart';
 import 'package:admin/patchController.dart';
+import 'package:admin/showFingerprintData.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:localization_engine/localization_engine.dart';
@@ -48,6 +49,7 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
   Future<void> _loadFingerprintData(String bid, int floor) async {
     // Mock data - replace with your API call
     _mapController.clearMarkers();
+    _mapController.removeMarker(markerId);
     var fingerPrintData = await fingerPrintingGetApi().Finger_Printing_GET_API(
         bid, floor.toString());
     if (fingerPrintData != null) {
@@ -73,7 +75,7 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
         final lat = double.tryParse(parts[5].trim());
         if (lat == null || lng == null) return null;
         print("localtoglobal:${lat}--${lng}");
-        return MapLocation(latitude: lat, longitude: lng);
+        return MapLocation(latitude: lat, longitude: lng,id: '${parts[1]},${parts[2]}');
       }
 
       // Default: 2-3 parts — use local x,y → convert to global
@@ -88,7 +90,7 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
         patchController.data,
       );
 
-      return MapLocation(latitude: latLng[0], longitude: latLng[1]);
+      return MapLocation(latitude: latLng[0], longitude: latLng[1],id: '${parts[0]},${parts[1]}');
     })
         .whereType<MapLocation>()
         .toList();
@@ -211,7 +213,7 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
           ),
           SafeArea(
               child: widget.fingerprinting.FingerPrintingPannel.getPanelWidget(
-                  context)),
+                  context,mapController: _mapController)),
         ],
       )
           : const Center(
@@ -224,13 +226,19 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
           ],
         ),
       ),
-      // floatingActionButton: FloatingActionButton.extended(
-      //   onPressed: (){
-      //     widget.fingerprinting.startScanning();
-      //   },
-      //   icon: const Icon(Icons.refresh),
-      //   label: const Text('Reload'),
-      // )
+      floatingActionButton: FloatingActionButton(
+        child: Icon(Icons.featured_play_list_outlined),
+        onPressed: ()async{
+          await Navigator.push(context, MaterialPageRoute(
+            builder: (_) => FingerprintListScreen(
+              buildingId: buildingAllApi.selectedBuildingID,
+              floor:widget.fingerprinting.floor?.toInt()??0 ,
+            ),
+          )).then((val){
+            _loadFingerprintData(buildingAllApi.selectedBuildingID,widget.fingerprinting.floor?.toInt()??0);
+          });
+        },
+      )
     );
   }
 

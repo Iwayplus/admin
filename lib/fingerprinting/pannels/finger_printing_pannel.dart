@@ -11,8 +11,9 @@ import '../fingerprinting.dart';
 
 class pinLandmark extends StatefulWidget {
   late Fingerprinting fingerprinting;
+  final dynamic mapController;
 
-  pinLandmark({required this.fingerprinting, Key? key}) : super(key: key);
+  pinLandmark({required this.fingerprinting, Key? key, this.mapController}) : super(key: key);
 
   @override
   _pinLandmarkState createState() => _pinLandmarkState();
@@ -22,7 +23,7 @@ class _pinLandmarkState extends State<pinLandmark> {
   late FixedExtentScrollController _controller;
 
   List<bool> isSelected = [true, false, false, false, false];
-  int selectedTimeInSeconds = 10; // Default to 10 seconds
+  int selectedTimeInSeconds = 11; // Default to 10 seconds
   ValueNotifier<int> remainingTime = ValueNotifier<int>(0);
   Timer? countdownTimer;
 
@@ -34,19 +35,19 @@ class _pinLandmarkState extends State<pinLandmark> {
       // Update selectedTimeInSeconds based on the index
       switch (index) {
         case 0:
-          selectedTimeInSeconds = 10;
+          selectedTimeInSeconds = 6;
           break;
         case 1:
-          selectedTimeInSeconds = 30;
+          selectedTimeInSeconds = 11;
           break;
         case 2:
-          selectedTimeInSeconds = 60;
+          selectedTimeInSeconds = 31;
           break;
         case 3:
-          selectedTimeInSeconds = 90;
+          selectedTimeInSeconds = 61;
           break;
         case 4:
-          selectedTimeInSeconds = 120;
+          selectedTimeInSeconds = 91;
           break;
       }
     });
@@ -83,7 +84,10 @@ class _pinLandmarkState extends State<pinLandmark> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        IconButton(onPressed: (){widget.fingerprinting.stopFingerprinting();}, icon: Icon(Icons.cancel)),
+        IconButton(onPressed: (){
+          widget.fingerprinting.stopFingerprinting();
+          widget.mapController.removeMarker(widget.mapController.);
+          }, icon: Icon(Icons.cancel)),
         Card(
           child: Container(
             width: screenWidth-32,
@@ -127,6 +131,10 @@ class _pinLandmarkState extends State<pinLandmark> {
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text("5 sec"),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text("10 sec"),
             ),
             Padding(
@@ -140,10 +148,6 @@ class _pinLandmarkState extends State<pinLandmark> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text("1.5 min"),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text("2 min"),
             ),
           ],
         ),
