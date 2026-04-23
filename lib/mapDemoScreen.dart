@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:admin/config.dart';
 import 'package:admin/fingerprinting/fingerprinting.dart';
 import 'package:admin/patchController.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:localization_engine/localization_engine.dart';
 import 'package:unified_map_view/unified_map_view.dart';
@@ -33,7 +34,7 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
   Future<void> createRooms(String bid) async {
     print("selected building id:${buildingAllApi.selectedBuildingID} ${bid}");
 
-    // buildingAllApi.selectedBuildingID = bid;
+    buildingAllApi.selectedBuildingID = bid;
     await patchController.createPatch(bid);
   }
 
@@ -203,7 +204,7 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
               }
             },),
           ),
-          Positioned(
+          if(kDebugMode)Positioned(
             bottom: 200,
             right: 16,
             child: Text(buildingAllApi.selectedBuildingID),

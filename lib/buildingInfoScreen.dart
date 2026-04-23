@@ -268,7 +268,7 @@ bool isLoading=false;
                           child:
                           ListTile(
                             onTap:(){
-                              // buildingAllApi.selectedBuildingID=dd!.buildings![index].id.toString();
+                              buildingAllApi.selectedBuildingID=dd!.buildings![index].id.toString();
                               wsocket.message["AppInitialization"]["BID"]=dd!.buildings![index].id;
                               wsocket.message["AppInitialization"]["buildingName"]=dd!.buildings![index].venueName;
                               buildingAllApi.selectedVenue=dd!.buildings![index].venueName!;

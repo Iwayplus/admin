@@ -136,7 +136,7 @@ class _googleMapState extends State<googleMap> {
 
   Future<void> createRooms(String bid) async {
     print("selected building id:${buildingAllApi.selectedBuildingID} ${bid}");
-    // buildingAllApi.selectedBuildingID=bid;
+    buildingAllApi.selectedBuildingID=bid;
     await patchController.createPatch(bid);
     fitPolygonInScreen(patchController.polygons.first);
     await polygonController.renderRooms(0, patchController.data,bid);
