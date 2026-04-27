@@ -16,9 +16,9 @@ import 'RefreshTokenAPI.dart';
 class buildingAllApi {
   final String baseUrl = "${AppConfig.baseUrl}/secured/building/all";
   String accessToken = "";
-  static String selectedBuildingID="";
-  static String selectedBuildingName="";
-  static String selectedVenue="";
+  static String selectedBuildingID="6821cbb2bc4412f1aa109b35";
+  static String selectedBuildingName="LectureHallComplex";
+  static String selectedVenue="IIT Delhi";
   static Map<String,g.LatLng> allBuildingID = {};
   static String outdoorID = "";
   static bool isGlobalAnnotation=false;
@@ -85,9 +85,9 @@ class buildingAllApi {
       double distance = tools.calculateAerialDist(userPosition.latitude, userPosition.longitude, building.coordinates![0], building.coordinates![1]);
       if(distance<d){
         print("selecting building ${building.sId!} ${building.buildingName} ${building.venueName!}");
-        selectedBuildingID = building.sId!;
-        selectedBuildingName = building.buildingName!;
-        selectedVenue = building.venueName!;
+        // selectedBuildingID = building.sId!;
+        // selectedBuildingName = building.buildingName!;
+        // selectedVenue = building.venueName!;
         d = distance;
       }
     }

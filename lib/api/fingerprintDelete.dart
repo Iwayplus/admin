@@ -13,7 +13,7 @@ class fingerPrintingDeleteApi {
     accessToken = await prefs.getMap("signin")!["accessToken"];
     print("buidlding id:${building_ID}");
     final Map<String, dynamic> data = {
-      "location": location,
+      "locationId": location.split(',').last,
     };
     final response = await http.delete(
       Uri.parse(baseUrl+building_ID),
@@ -23,7 +23,6 @@ class fingerPrintingDeleteApi {
         'x-access-token': accessToken
       },
     );
-
     print("response ${response.statusCode}  ${response.body}");
     if (response.statusCode == 200) {
       return true;

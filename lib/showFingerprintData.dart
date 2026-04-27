@@ -58,7 +58,7 @@ class _FingerprintListScreenState extends State<FingerprintListScreen> {
   List<String> _extractLocationStrings(FingerPrintData? fingerPrintData) {
     if (fingerPrintData?.data == null) return [];
     return fingerPrintData!.data!
-        .map((entry) => entry.location)
+        .map((entry) => "${entry.location},${entry.sId}")
         .whereType<String>()
         .where((loc) => loc.trim().isNotEmpty)
         .toList();

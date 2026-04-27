@@ -86,7 +86,7 @@ class _pinLandmarkState extends State<pinLandmark> {
       children: [
         IconButton(onPressed: (){
           widget.fingerprinting.stopFingerprinting();
-          widget.mapController.removeMarker(widget.mapController.);
+          // widget.mapController.removeMarker(widget.mapController.);
           }, icon: Icon(Icons.cancel)),
         Card(
           child: Container(

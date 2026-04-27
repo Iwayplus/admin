@@ -49,7 +49,7 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
   Future<void> _loadFingerprintData(String bid, int floor) async {
     // Mock data - replace with your API call
     _mapController.clearMarkers();
-    _mapController.removeMarker(markerId);
+    // _mapController.removeMarker(markerId);
     var fingerPrintData = await fingerPrintingGetApi().Finger_Printing_GET_API(
         bid, floor.toString());
     if (fingerPrintData != null) {
@@ -60,6 +60,7 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
   }
 
   List<MapLocation> _localPoints = [];
+  final Set<String> _latLngSet = {};
 
   void _extractLocalPoints(FingerPrintData? fingerPrintData) {
     if (fingerPrintData?.data == null) return;
@@ -74,7 +75,8 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
         final lng = double.tryParse(parts[4].trim());
         final lat = double.tryParse(parts[5].trim());
         if (lat == null || lng == null) return null;
-        print("localtoglobal:${lat}--${lng}");
+        print("localtoglobal:${lat}--${lng}--${parts[1]}--${parts[2]}");
+        _latLngSet.add('$lat,$lng');
         return MapLocation(latitude: lat, longitude: lng,id: '${parts[1]},${parts[2]}');
       }
 
@@ -111,6 +113,7 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
         // tilt: 0.0,
       ),
       url: AppConfig.baseUrl,
+     
     );
     // buildingAllApi.selectedBuildingName=_mapController.focusedBuildingName;
     //     buildingAllApi.selectedBuildingName=_mapController.focusedVenueName;
@@ -132,12 +135,11 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
   /// Load GeoJSON data and add markers
   Future<void> _loadMapData() async {
     try {
-      if (_mapController.focusedBuilding != null) {
-        buildingAllApi.saveBid(_mapController.focusedBuilding!);
-        createRooms(_mapController.focusedBuilding!);
-        _loadFingerprintData(_mapController.focusedBuilding!, 0);
+      if (buildingAllApi.selectedBuildingID != null) {
+        buildingAllApi.saveBid(buildingAllApi.selectedBuildingID!);
+        createRooms(buildingAllApi.selectedBuildingID!);
+        _loadFingerprintData(buildingAllApi.selectedBuildingID!, 0);
       }
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -158,9 +160,7 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
         );
       }
     }
-    setState(() {
-
-    });
+    setState((){});
   }
 
   /// Switch between map providers
@@ -248,21 +248,49 @@ class _MapDemoScreenState extends State<MapDemoScreen> {
 
   _handleIfPinDropped(MapLocation? location) {
     if (location != null) {
+
+      // Check if any point in _latLngSet is within 1 meter
+      MapLocation? nearestPoint;
+      double nearestDistance = double.infinity;
+
+      for (final entry in _latLngSet) {
+        final parts = entry.split(',');
+        if (parts.length < 2) continue;
+
+        final setLat = double.tryParse(parts[0]);
+        final setLng = double.tryParse(parts[1]);
+        if (setLat == null || setLng == null) continue;
+
+        final distance = tools.calculateAerialDist(
+          location.latitude, location.longitude,
+          setLat, setLng,
+        );
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestPoint = MapLocation(latitude: setLat, longitude: setLng);
+        }
+      }
+
+      // Use nearest point if within 1 meter, otherwise use tapped location
+      final effectiveLocation = (nearestPoint != null && nearestDistance < 1.0)
+          ? nearestPoint
+          : location;
+
+      print("nearestDistance: $nearestDistance, using: ${effectiveLocation.latitude}, ${effectiveLocation.longitude}");
+
       List<int>? localCoords = tools.globalToLocalPoints(
           patchData: patchController.data!,
-          lat: location.latitude,
-          lng: location.longitude);
-      print("localCoords:${localCoords} ${location.latitude} ${location
-          .longitude}");
+          lat: effectiveLocation.latitude,
+          lng: effectiveLocation.longitude);
+      print("localCoords:${localCoords} ${effectiveLocation.latitude} ${effectiveLocation.longitude}");
       if (localCoords != null) {
-        Nodes point = Nodes(coordx: localCoords[0].toInt(),
+        Nodes point = Nodes(
+            coordx: localCoords[0].toInt(),
             coordy: localCoords[1]!.toInt(),
-            lat: location.latitude,
-            lon: location.longitude,
+            lat: effectiveLocation.latitude,
+            lon: effectiveLocation.longitude,
             indexNode: "0",
-            sId: "default-ID${DateTime
-                .now()
-                .millisecondsSinceEpoch}");
+            sId: effectiveLocation.id ?? "default-ID${DateTime.now().millisecondsSinceEpoch}");
         widget.fingerprinting.userPosition = point;
         widget.fingerprinting.floor =
             _mapController.focusBuildingSelectedFloor ?? 0;
