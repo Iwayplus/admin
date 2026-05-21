@@ -1259,10 +1259,10 @@ packages:
     dependency: transitive
     description:
       name: turf
-      sha256: "75347c45a5c1de805db7cb182286f05a3770e01546626c4dc292709d15cbe436"
+      sha256: "7684654c561e751332bc2fa6e9bb7bcf0c71bad5315acf126206e7ecfef67256"
       url: "https://pub.dev"
     source: hosted
-    version: "0.0.10"
+    version: "0.0.12"
   turf_equality:
     dependency: transitive
     description:
@@ -1284,7 +1284,7 @@ packages:
     description:
       path: "."
       ref: main
-      resolved-ref: "74d9fb19cc7d9f0be53015806da44833dbe67b93"
+      resolved-ref: "10c6ec1c455c1fd7464b3e9a12d3367c57810a21"
       url: "https://github.com/iisthehimanshu/turn_highlighter.git"
     source: git
     version: "2.0.0"

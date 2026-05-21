@@ -278,21 +278,21 @@ bool isLoading=false;
                               print("allbuildingapi");
                               print("${buildingAllApi.selectedBuildingID} ${dd!.buildings![index].id} ${index}");
 
-                              if(buildingAllApi.isGlobalAnnotation){
+                              // if(buildingAllApi.isGlobalAnnotation){
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => MapDemoScreen(fingerprinting: _fingerprinting),
                                   ),
                                 );
-                              }else{
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => googleMap(fromPage: widget.frmMainScreen!, bid: dd!.buildings![index].id.toString(), bName: dd!.buildings![index].buildingName.toString(),),
-                                  ),
-                                );
-                              }
+                              // }else{
+                              //   Navigator.push(
+                              //     context,
+                              //     MaterialPageRoute(
+                              //       builder: (context) => googleMap(fromPage: widget.frmMainScreen!, bid: dd!.buildings![index].id.toString(), bName: dd!.buildings![index].buildingName.toString(),),
+                              //     ),
+                              //   );
+                              // }
 
                             },
                             title: Container(
