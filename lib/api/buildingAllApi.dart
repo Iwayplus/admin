@@ -16,9 +16,9 @@ import 'RefreshTokenAPI.dart';
 class buildingAllApi {
   final String baseUrl = "${AppConfig.baseUrl}/secured/building/all";
   String accessToken = "";
-  static String selectedBuildingID="69e88519412aec622fc75536";
-  static String selectedBuildingName="AIGHospital";
-  static String selectedVenue="AIGHospital";
+  static String selectedBuildingID="680350a8f5cf00e849db92af";
+  static String selectedBuildingName="Ashoka University";
+  static String selectedVenue="Ashoka University";
   static Map<String,g.LatLng> allBuildingID = {};
   static String outdoorID = "";
   static bool isGlobalAnnotation=false;

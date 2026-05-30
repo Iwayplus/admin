@@ -62,6 +62,7 @@ class Fingerprinting{
 
   List<WiFiAccessPoint> accessPoints = [];
   StreamSubscription<List<WiFiAccessPoint>>? subscription;
+  DateTime? _lastWifiScan;
 
   Fingerprinting() {
     FingerPrintingPannel = fingerprintingPannel(fingerprinting: this);
@@ -758,6 +759,7 @@ class Fingerprinting{
 
   Future<void> collectSensorDataEverySecond() async {
     /// Start raw scanning
+    _startListeningToScannedResults();
     data = Data(position: "${buildingAllApi.selectedBuildingID},${userPosition?.coordx},${userPosition?.coordy},$floor,${userPosition?.lon},${userPosition?.lat}");
 
     gps.startGpsUpdates();
@@ -819,6 +821,9 @@ class Fingerprinting{
 
       print("Accumulated Beacons: ${beacons.map((b) =>
       "${b.beaconMacId}: ${b.beaconRssi.length} RSSIs").toList()}");
+
+      // Re-trigger a WiFi scan (internally throttled for Android limits).
+      _triggerWifiScan();
 
       var gpsData = await fetchGpsData();
       var wifi = await fetchWifiData();
@@ -992,10 +997,42 @@ class Fingerprinting{
   void _startListeningToScannedResults() async {
     // check platform support and necessary requirements
     final can = await WiFiScan.instance.canGetScannedResults(askPermissions: true);
+    print("[WIFI] canGetScannedResults = $can");
     if(can == CanGetScannedResults.yes){
+      subscription?.cancel();
       subscription = WiFiScan.instance.onScannedResultsAvailable.listen((results) {
         accessPoints = results;
+        print("[WIFI] onScannedResultsAvailable fired -> ${results.length} APs");
       });
+      print("[WIFI] listening to onScannedResultsAvailable");
+    } else {
+      print("[WIFI] CANNOT get scanned results: $can");
+    }
+
+    // Actually trigger a scan, otherwise onScannedResultsAvailable never fires
+    // and accessPoints stays empty.
+    await _triggerWifiScan();
+  }
+
+  /// Kicks off a WiFi scan. Android throttles scans (~4 per 2 min on Android 9+),
+  /// so this is throttled to avoid spamming rejected calls.
+  Future<void> _triggerWifiScan() async {
+    final now = DateTime.now();
+    if (_lastWifiScan != null &&
+        now.difference(_lastWifiScan!) < const Duration(seconds: 30)) {
+      print("[WIFI] startScan skipped (throttled, last=$_lastWifiScan)");
+      return;
+    }
+    final canStart = await WiFiScan.instance.canStartScan(askPermissions: true);
+    print("[WIFI] canStartScan = $canStart");
+    if (canStart == CanStartScan.yes) {
+      final started = await WiFiScan.instance.startScan();
+      print("[WIFI] startScan() returned $started");
+      if (started) {
+        _lastWifiScan = now;
+      }
+    } else {
+      print("[WIFI] CANNOT start scan: $canStart");
     }
   }
 
@@ -1046,6 +1083,7 @@ class Fingerprinting{
     for (var wifi in accessPoints) {
       wifilist.add(Wifi(wifiName: wifi.bssid, wifiStrength: wifi.level));
     }
+    print("[WIFI] fetchWifiData -> accessPoints=${accessPoints.length}, returning ${wifilist.length} wifi entries");
     return wifilist;
   }
 
